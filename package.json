@@ -1,0 +1,71 @@
+{
+  "name": "three-good-godrays",
+  "version": "0.1.0",
+  "description": "Screen-space raymarched godrays for three.js using the pmndrs postprocessing library",
+  "main": "build/three-good-godrays.js",
+  "module": "build/three-good-godrays.esm.js",
+  "exports": {
+    ".": {
+      "import": "./build/three-good-godrays.esm.js",
+      "require": "./build/three-good-godrays.js"
+    },
+    "./module": "./build/three-good-godrays.mjs"
+  },
+  "types": "build/three-good-godrays.d.ts",
+  "sideEffects": false,
+  "keywords": [
+    "three",
+    "threejs",
+    "godrays",
+    "postprocessing",
+    "raymarching"
+  ],
+  "contributors": [
+    {
+      "name": "n8programs",
+      "url": "https://github.com/n8python"
+    },
+    {
+      "name": "Casey Primozic",
+      "url": "https://github.com/ameobea"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ameobea/three-good-godrays.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ameobea/three-good-godrays/issues"
+  },
+  "files": [
+    "build",
+    "types"
+  ],
+  "engines": {
+    "node": ">= 0.13.2"
+  },
+  "scripts": {
+    "clean": "mkdir -p build && rimraf build types",
+    "copy-files": "cp -r demo/static/* public/demo",
+    "build:js": "node esbuild.mjs",
+    "build:js:min": "node esbuild.mjs -m",
+    "build:types": "tsc --declaration --emitDeclarationOnly && rm build/bluenoise.d.ts && mv build/index.d.ts build/three-good-godrays.d.ts",
+    "prepublishOnly": "run-s clean build:types build:js:min copy-files"
+  },
+  "peerDependencies": {
+    "postprocessing": "^6.0",
+    "three": ">= 0.125.0 < 0.145.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.144.0",
+    "dat.gui": "^0.7.9",
+    "esbuild": "^0.15.10",
+    "esbuild-plugin-glsl": "1.x.x",
+    "eslint": "8.x.x",
+    "npm-run-all": "^4.1.5",
+    "postprocessing": "^6.28.7",
+    "three": "^0.144.0",
+    "three-demo": "^5.1.3",
+    "typescript": "^4.8.4"
+  }
+}

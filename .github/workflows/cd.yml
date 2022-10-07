@@ -1,0 +1,59 @@
+# Aapted from `postprocessing` library: https://github.com/pmndrs/postprocessing/blob/main/esbuild.mjs
+#
+# Zlib license:
+#
+# Copyright © 2015 Raoul van Rüschen
+#
+# This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software.
+#
+# Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
+#
+# The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
+#
+# Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
+#
+# This notice may not be removed or altered from any source distribution.
+
+name: CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+      - name: Install Node
+        uses: actions/setup-node@v3
+      - name: Install PNPM
+        run: npm install -g pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+      - name: Publish
+        id: publish
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+      - if: steps.publish.outputs.type != 'none'
+        run: |
+          echo "Version changed: ${{ steps.publish.outputs.old-version }} → ${{ steps.publish.outputs.version }}"
+      - name: Deploy to NPM
+        run: pnpm run deploy
+
+      # demo site
+      - name: Install `phost`
+        run: pip3 install --user setuptools wheel && pip3 install --user "git+https://github.com/Ameobea/phost.git#egg=phost&subdirectory=client"
+      - name: Add `phost` to the `PATH`
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Extract `phost` config from secrets
+        env: # Or as an environment variable
+          PHOST_CONFIG_BASE64: ${{ secrets.PHOST_CONFIG_BASE64 }}
+        run: mkdir ~/.phost; echo "$PHOST_CONFIG_BASE64" | base64 -d > ~/.phost/conf.toml
+      - name: Deploy demo
+        run: phost update three-good-godrays patch ./public/demo
