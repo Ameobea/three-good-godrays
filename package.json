@@ -50,8 +50,7 @@
     "build:js": "node esbuild.mjs",
     "build:js:min": "node esbuild.mjs -m",
     "build:types": "tsc --declaration --emitDeclarationOnly && rm build/bluenoise.d.ts && mv build/index.d.ts build/three-good-godrays.d.ts",
-    "prepublishOnly": "run-s clean build:types build:js:min copy-files",
-    "deploy": "run-s copy-files"
+    "prepublishOnly": "run-s clean build:types build:js:min copy-files"
   },
   "peerDependencies": {
     "postprocessing": "^6.0",

@@ -46,10 +46,10 @@ jobs:
       - if: steps.publish.outputs.type != 'none'
         run: |
           echo "Version changed: ${{ steps.publish.outputs.old-version }} → ${{ steps.publish.outputs.version }}"
-      - name: Deploy to NPM
-        run: pnpm run deploy
 
       # demo site
+      - name: Build demo
+        run: npm prepublishOnly
       - name: Install `phost`
         run: pip3 install --user setuptools wheel && pip3 install --user "git+https://github.com/Ameobea/phost.git#egg=phost&subdirectory=client"
       - name: Add `phost` to the `PATH`
