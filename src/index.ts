@@ -29,8 +29,30 @@ const getBlueNoiseTexture = async (): Promise<THREE.Texture> => {
   return blueNoiseTexture;
 };
 
+/**
+ * Projects a point `worldPos` in world space onto the shadow map of
+ * `directionalLight` and returns the resulting texture coordinates.
+ */
+const projectPoint = (
+  worldPos: THREE.Vector3,
+  directionalLight: THREE.DirectionalLight
+): THREE.Vector2 => {
+  const lightSpaceMatrix = new THREE.Matrix4();
+  lightSpaceMatrix.multiplyMatrices(
+    directionalLight.shadow.camera.projectionMatrix,
+    directionalLight.shadow.camera.matrixWorldInverse
+  );
+
+  const projectedPoint = worldPos.clone().applyMatrix4(lightSpaceMatrix);
+
+  return new THREE.Vector2(
+    (projectedPoint.x + 1) / 2,
+    (projectedPoint.y + 1) / 2
+  );
+};
+
 class GodraysMaterial extends THREE.ShaderMaterial {
-  constructor() {
+  constructor(light: THREE.PointLight | THREE.DirectionalLight) {
     const uniforms = {
       density: { value: 1 / 128 },
       maxDensity: { value: 0.5 },
@@ -39,21 +61,37 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       lightPos: { value: new THREE.Vector3(0, 0, 0) },
       cameraPos: { value: new THREE.Vector3(0, 0, 0) },
       resolution: { value: new THREE.Vector2(1, 1) },
-      projectionMatrixInv: { value: new THREE.Matrix4() },
-      viewMatrixInv: { value: new THREE.Matrix4() },
-      depthCube: { value: null },
+      lightCameraProjectionMatrix: { value: new THREE.Matrix4() },
+      lightCameraMatrixWorldInverse: { value: new THREE.Matrix4() },
+      cameraProjectionMatrixInv: { value: new THREE.Matrix4() },
+      cameraMatrixWorld: { value: new THREE.Matrix4() },
+      shadowMap: { value: null },
       mapSize: { value: 1 },
-      pointLightCameraNear: { value: 0.1 },
-      pointLightCameraFar: { value: 1000 },
+      lightCameraNear: { value: 0.1 },
+      lightCameraFar: { value: 1000 },
       blueNoise: { value: null as THREE.Texture | null },
       noiseResolution: { value: new THREE.Vector2(1, 1) },
     };
+
+    const defines = {
+      IS_POINT_LIGHT:
+        light instanceof THREE.PointLight || (light as any).isPointLight
+          ? 1
+          : 0,
+      IS_DIRECTIONAL_LIGHT:
+        light instanceof THREE.DirectionalLight ||
+        (light as any).isDirectionalLight
+          ? 1
+          : 0,
+    };
+    console.log(defines);
 
     super({
       name: "GodraysMaterial",
       uniforms,
       fragmentShader: GodraysFragmentShader,
       vertexShader: GodraysVertexShader,
+      defines,
     });
 
     getBlueNoiseTexture().then((blueNoiseTexture) => {
@@ -77,7 +115,7 @@ class GodraysIllumPass extends Pass implements Resizable {
 
     this.props = props;
     this.lastParams = params;
-    this.material = new GodraysMaterial();
+    this.material = new GodraysMaterial(props.light);
 
     this.updateUniforms(props, params);
 
@@ -98,7 +136,7 @@ class GodraysIllumPass extends Pass implements Resizable {
     _deltaTime?: number | undefined,
     _stencilTest?: boolean | undefined
   ): void {
-    if (!this.shadowMapSet && this.props.pointLight.shadow.map?.texture) {
+    if (!this.shadowMapSet && this.props.light.shadow.map?.texture) {
       this.updateUniforms(this.props, this.lastParams);
       this.shadowMapSet = true;
     }
@@ -118,28 +156,32 @@ class GodraysIllumPass extends Pass implements Resizable {
   }
 
   public updateUniforms(
-    { pointLight, camera }: GodraysPassProps,
+    { light, camera }: GodraysPassProps,
     params: GodraysPassParams
   ): void {
-    const pointLightShadow = pointLight.shadow;
-    if (!pointLightShadow) {
-      throw new Error("Point light must have shadow");
+    const shadow = light.shadow;
+    if (!shadow) {
+      throw new Error("Light used for godrays must have shadow");
     }
 
-    const depthCube = pointLightShadow.map?.texture ?? null;
-    const mapSize = pointLightShadow.map?.height ?? 1;
+    const shadowMap = shadow.map?.texture ?? null;
+    const mapSize = shadow.map?.height ?? 1;
 
     const uniforms = this.material.uniforms;
     uniforms.density.value = params.density;
     uniforms.maxDensity.value = params.maxDensity;
-    uniforms.lightPos.value = pointLight.position;
+    uniforms.lightPos.value = light.position;
     uniforms.cameraPos.value = camera.position;
-    uniforms.projectionMatrixInv.value = camera.projectionMatrixInverse;
-    uniforms.viewMatrixInv.value = camera.matrixWorld;
-    uniforms.depthCube.value = depthCube;
+    uniforms.lightCameraProjectionMatrix.value =
+      light.shadow.camera.projectionMatrix;
+    uniforms.lightCameraMatrixWorldInverse.value =
+      light.shadow.camera.matrixWorldInverse;
+    uniforms.cameraProjectionMatrixInv.value = camera.projectionMatrixInverse;
+    uniforms.cameraMatrixWorld.value = camera.matrixWorld;
+    uniforms.shadowMap.value = shadowMap;
     uniforms.mapSize.value = mapSize;
-    uniforms.pointLightCameraNear.value = pointLightShadow?.camera.near ?? 0.1;
-    uniforms.pointLightCameraFar.value = pointLightShadow?.camera.far ?? 1000;
+    uniforms.lightCameraNear.value = shadow?.camera.near ?? 0.1;
+    uniforms.lightCameraFar.value = shadow?.camera.far ?? 1000;
     uniforms.density.value = params.density;
     uniforms.maxDensity.value = params.maxDensity;
     uniforms.distanceAttenuation.value = params.distanceAttenuation;
@@ -249,7 +291,7 @@ class GodraysCompositorPass extends Pass implements Resizable {
 }
 
 interface GodraysPassProps {
-  pointLight: THREE.PointLight;
+  light: THREE.PointLight | THREE.DirectionalLight;
   camera: THREE.Camera;
 }
 
@@ -336,14 +378,14 @@ export class GodraysPass extends Pass implements Disposable {
    * @param partialParams The parameters to use for the godrays effect.  Will use default values for any parameters not specified.
    */
   constructor(
-    light: THREE.PointLight,
+    light: THREE.PointLight | THREE.DirectionalLight,
     camera: THREE.Camera,
     partialParams: Partial<GodraysPassParams> = {}
   ) {
     super("GodraysPass");
 
     this.props = {
-      pointLight: light,
+      light: light,
       camera,
     };
     const params = populateParams(partialParams);

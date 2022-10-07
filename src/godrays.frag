@@ -12,13 +12,15 @@ uniform sampler2D blueNoise;
 uniform vec3 lightPos;
 uniform vec3 cameraPos;
 uniform vec2 resolution;
-uniform mat4 projectionMatrixInv;
-uniform mat4 viewMatrixInv;
-uniform sampler2D depthCube;
+uniform mat4 lightCameraProjectionMatrix;
+uniform mat4 lightCameraMatrixWorldInverse;
+uniform mat4 cameraProjectionMatrixInv;
+uniform mat4 cameraMatrixWorld;
+uniform sampler2D shadowMap;
 uniform vec2 noiseResolution;
 uniform float mapSize;
-uniform float pointLightCameraNear;
-uniform float pointLightCameraFar;
+uniform float lightCameraNear;
+uniform float lightCameraFar;
 uniform float density;
 uniform float maxDensity;
 uniform float distanceAttenuation;
@@ -28,10 +30,10 @@ uniform float distanceAttenuation;
 vec3 WorldPosFromDepth(float depth, vec2 coord) {
   float z = depth * 2.0 - 1.0;
   vec4 clipSpacePosition = vec4(coord * 2.0 - 1.0, z, 1.0);
-  vec4 viewSpacePosition = projectionMatrixInv * clipSpacePosition;
+  vec4 viewSpacePosition = cameraProjectionMatrixInv * clipSpacePosition;
   // Perspective division
   viewSpacePosition /= viewSpacePosition.w;
-  vec4 worldSpacePosition = viewMatrixInv * viewSpacePosition;
+  vec4 worldSpacePosition = cameraMatrixWorld * viewSpacePosition;
   return worldSpacePosition.xyz;
 }
 
@@ -39,6 +41,10 @@ float linearize_depth(float d,float zNear,float zFar) {
   return zNear * zFar / (zFar + d * (zNear - zFar));
 }
 
+/**
+ * Converts angle between light and a world position to a coordinate
+ * in a point light cube shadow map
+ */
 vec2 cubeToUV( vec3 v, float texelSizeY ) {
   // Number of texels to avoid at the edge of each square
   vec3 absV = abs( v );
@@ -73,25 +79,58 @@ vec2 cubeToUV( vec3 v, float texelSizeY ) {
   return vec2( 0.125, 0.25 ) * planar + vec2( 0.375, 0.75 );
 }
 
+/**
+ * Projects `worldPos` onto the shadow map of a directional light and returns
+ * that position in UV space.
+ */
+vec2 projectToShadowMap(vec3 worldPos) {
+  vec4 lightSpacePos = lightCameraProjectionMatrix * vec4(worldPos, 1.0);
+  lightSpacePos /= lightSpacePos.w;
+  lightSpacePos = lightSpacePos * 0.5 + 0.5;
+  return lightSpacePos.xy;
+}
+
 float inShadow(vec3 worldPos) {
-  vec4 packedDepth = texture2D(depthCube, cubeToUV(normalize(worldPos - lightPos), 1.0 / (mapSize * 2.0)));
+  #if defined(IS_POINT_LIGHT)
+    float texelSizeY = 1.0 / (mapSize * 2.0);
+    vec2 shadowMapUV = cubeToUV(normalize(worldPos - lightPos), texelSizeY);
+  #elif defined(IS_DIRECTIONAL_LIGHT)
+    vec2 shadowMapUV = projectToShadowMap(worldPos);
+    if (shadowMapUV.x < 0.0 || shadowMapUV.x > 1.0 || shadowMapUV.y < 0.0 || shadowMapUV.y > 1.0) {
+      return 1.0;
+    }
+  #endif
+
+  vec4 packedDepth = texture2D(shadowMap, shadowMapUV);
   float depth = unpackRGBAToDepth(packedDepth);
-  depth = pointLightCameraNear + (pointLightCameraFar - pointLightCameraNear) * depth;
+  depth = lightCameraNear + (lightCameraFar - lightCameraNear) * depth;
   float difference = distance(worldPos, lightPos) - depth;
   return float(difference > 0.01);
 }
 
 void main() {
   float depth = texture2D(sceneDepth, vUv).x;
-  vec4 blueNoiseSample = texture2D(blueNoise, vUv * (resolution / noiseResolution));
+  // if (depth == 1.) {
+  //   gl_FragColor = vec4(0.0, 1., 0., 1.);
+  //   return;
+  // }
 
   vec3 worldPos = WorldPosFromDepth(depth, vUv);
+  // vec2 tempUV = projectToShadowMap(worldPos);
+  // if (tempUV.x < 0.0 || tempUV.x > 1.0 || tempUV.y < 0.0 || tempUV.y > 1.0) {
+  //   gl_FragColor = vec4(0.0);
+  //   return;
+  // }
+  // gl_FragColor = vec4(tempUV, 0.0, 1.0);
+  // return;
   float illum = 0.0;
 
+  vec4 blueNoiseSample = texture2D(blueNoise, vUv * (resolution / noiseResolution));
   float samples = round(60.0 + 8.0 * blueNoiseSample.x);
   for (float i = 0.0; i < samples; i++) {
     vec3 samplePos = mix(cameraPos, worldPos, i / samples);
-    illum += (1.0 - inShadow(samplePos)) * (distance(cameraPos, worldPos) * density) * exp(-distanceAttenuation * distance(worldPos, lightPos));
+    float shadowAmount = (1.0 - inShadow(samplePos));
+    illum += shadowAmount * (distance(cameraPos, worldPos) * density) * exp(-distanceAttenuation * distance(worldPos, lightPos));
   }
   illum /= samples;
   gl_FragColor = vec4(vec3(clamp((1.0 - exp(-illum)), 0.0, maxDensity)), depth);
