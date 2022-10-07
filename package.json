@@ -1,6 +1,6 @@
 {
   "name": "three-good-godrays",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Screen-space raymarched godrays for three.js using the pmndrs postprocessing library",
   "main": "build/three-good-godrays.js",
   "module": "build/three-good-godrays.esm.js",
@@ -54,7 +54,7 @@
   },
   "peerDependencies": {
     "postprocessing": "^6.0",
-    "three": ">= 0.125.0 < 0.145.0"
+    "three": ">= 0.125.0 <= 0.145.0"
   },
   "devDependencies": {
     "@types/three": "^0.144.0",

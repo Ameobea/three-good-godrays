@@ -1,5 +1,8 @@
 # `three-good-godrays`
 
+[![CI](https://github.com/ameobea/three-good-godrays/actions/workflows/cd.yml/badge.svg)](https://github.com/ameobea/three-good-godrays/actions/workflows/ci.yml)
+[![Version](https://badgen.net/npm/v/three-good-godrays?color=green)](https://www.npmjs.com/package/three-good-godrays)
+
 Good godrays effect for three.js using the [pmndrs `postprocessing` library](https://github.com/pmndrs/postprocessing)
 
 Adapted from [original implementation](https://github.com/n8python/goodGodRays) by [@n8python](https://github.com/n8python)
@@ -7,6 +10,10 @@ Adapted from [original implementation](https://github.com/n8python/goodGodRays) 
 **Demo**: <https://three-good-godrays.ameo.design>
 
 ![A screenshot showing the three-good-godrays effect in action within the sponza demo scene. A white sphere in the middle of a terrace with pillars has white godrays emanating from it along with prominent shadows.](https://ameo.link/u/al8.jpg)
+
+## Install
+
+`npm install three-good-godrays`
 
 ## Usage
 
