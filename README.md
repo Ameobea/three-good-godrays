@@ -4,9 +4,9 @@ Good godrays effect for three.js using the [pmndrs `postprocessing` library](htt
 
 Adapted from [original implementation](https://github.com/n8python/goodGodRays) by [@n8python](https://github.com/n8python)
 
-![A screenshot showing the three-good-godrays effect in action within the sponza demo scene. A white sphere in the middle of a terrace with pillars has white godrays emanating from it along with prominent shadows.](https://ameo.link/u/al8.jpg)
+**Demo**: <https://three-good-godrays.ameo.design>
 
-Demo: <https://three-good-godrays.ameo.design>
+![A screenshot showing the three-good-godrays effect in action within the sponza demo scene. A white sphere in the middle of a terrace with pillars has white godrays emanating from it along with prominent shadows.](https://ameo.link/u/al8.jpg)
 
 ## Usage
 
@@ -15,7 +15,7 @@ import * as THREE from 'three';
 import { EffectComposer, RenderPass } from 'postprocessing';
 import { GodraysPass } from 'three-good-godrays';
 
-const { scene, camera, renderer } = init();
+const { scene, camera, renderer } = initYourScene();
 
 // shadowmaps are needed for this effect
 renderer.shadowMap.enabled = true;
