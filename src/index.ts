@@ -29,28 +29,6 @@ const getBlueNoiseTexture = async (): Promise<THREE.Texture> => {
   return blueNoiseTexture;
 };
 
-/**
- * Projects a point `worldPos` in world space onto the shadow map of
- * `directionalLight` and returns the resulting texture coordinates.
- */
-const projectPoint = (
-  worldPos: THREE.Vector3,
-  directionalLight: THREE.DirectionalLight
-): THREE.Vector2 => {
-  const lightSpaceMatrix = new THREE.Matrix4();
-  lightSpaceMatrix.multiplyMatrices(
-    directionalLight.shadow.camera.projectionMatrix,
-    directionalLight.shadow.camera.matrixWorldInverse
-  );
-
-  const projectedPoint = worldPos.clone().applyMatrix4(lightSpaceMatrix);
-
-  return new THREE.Vector2(
-    (projectedPoint.x + 1) / 2,
-    (projectedPoint.y + 1) / 2
-  );
-};
-
 class GodraysMaterial extends THREE.ShaderMaterial {
   constructor(light: THREE.PointLight | THREE.DirectionalLight) {
     const uniforms = {
@@ -73,24 +51,15 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       noiseResolution: { value: new THREE.Vector2(1, 1) },
     };
 
-   /* const defines = {
-      IS_POINT_LIGHT:
-        light instanceof THREE.PointLight || (light as any).isPointLight
-          ? 1
-          : 0,
-      IS_DIRECTIONAL_LIGHT:
-        light instanceof THREE.DirectionalLight ||
-        (light as any).isDirectionalLight
-          ? 1
-          : 0,
-    };*/
-    const defines = {};
+    const defines: Record<string, any> = {};
     if (light instanceof THREE.PointLight || (light as any).isPointLight) {
       defines.IS_POINT_LIGHT = "";
-    } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
+    } else if (
+      light instanceof THREE.DirectionalLight ||
+      (light as any).isDirectionalLight
+    ) {
       defines.IS_DIRECTIONAL_LIGHT = "";
     }
-    console.log(defines);
 
     super({
       name: "GodraysMaterial",

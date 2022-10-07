@@ -119,19 +119,8 @@ vec2 inShadow(vec3 worldPos) {
 
 void main() {
   float depth = texture2D(sceneDepth, vUv).x;
-  // if (depth == 1.) {
-  //   gl_FragColor = vec4(0.0, 1., 0., 1.);
-  //   return;
-  // }
 
   vec3 worldPos = WorldPosFromDepth(depth, vUv);
-  // vec2 tempUV = projectToShadowMap(worldPos);
-  // if (tempUV.x < 0.0 || tempUV.x > 1.0 || tempUV.y < 0.0 || tempUV.y > 1.0) {
-  //   gl_FragColor = vec4(0.0);
-  //   return;
-  // }
-  // gl_FragColor = vec4(tempUV, 0.0, 1.0);
-  // return;
   float illum = 0.0;
 
   vec4 blueNoiseSample = texture2D(blueNoise, vUv * (resolution / noiseResolution));

@@ -64,24 +64,25 @@ export default class GodraysDemo extends Demo {
 
     const backdropDistance = 200;
     // Add backdrop walls `backdropDistance` units away from the origin
-    // const backdropGeometry = new THREE.PlaneGeometry(1000, 1000);
-    // const backdropMaterial = new THREE.MeshBasicMaterial({
-    //   color: 0x000000,
-    // });
-    // const backdropLeft = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    // backdropLeft.position.set(-backdropDistance, 0, 0);
-    // backdropLeft.rotateY(Math.PI / 2);
-    // this.scene.add(backdropLeft);
-    // const backdropRight = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    // backdropRight.position.set(backdropDistance, 0, 0);
-    // backdropRight.rotateY(Math.PI / 2);
-    // this.scene.add(backdropRight);
+    const backdropGeometry = new THREE.PlaneGeometry(400, 400);
+    const backdropMaterial = new THREE.MeshBasicMaterial({
+      color: 0x200808,
+      side: THREE.DoubleSide,
+    });
+    const backdropLeft = new THREE.Mesh(backdropGeometry, backdropMaterial);
+    backdropLeft.position.set(-backdropDistance, 200, 0);
+    backdropLeft.rotateY(Math.PI / 2);
+    this.scene.add(backdropLeft);
+    const backdropRight = new THREE.Mesh(backdropGeometry, backdropMaterial);
+    backdropRight.position.set(backdropDistance, 200, 0);
+    backdropRight.rotateY(Math.PI / 2);
+    this.scene.add(backdropRight);
     // const backdropFront = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    // backdropFront.position.set(0, 0, -backdropDistance);
+    // backdropFront.position.set(0, 200, -backdropDistance);
     // this.scene.add(backdropFront);
-    // const backdropBack = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    // backdropBack.position.set(0, 0, backdropDistance);
-    // this.scene.add(backdropBack);
+    const backdropBack = new THREE.Mesh(backdropGeometry, backdropMaterial);
+    backdropBack.position.set(0, 200, backdropDistance);
+    this.scene.add(backdropBack);
 
     this.scene.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
@@ -128,14 +129,14 @@ export default class GodraysDemo extends Demo {
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     dirLight.shadow.camera.near = 0.1;
-    dirLight.shadow.camera.far = 1000;
-    dirLight.shadow.camera.left = -300;
-    dirLight.shadow.camera.right = 300;
-    dirLight.shadow.camera.top = 300;
-    dirLight.shadow.camera.bottom = -300;
+    dirLight.shadow.camera.far = 500;
+    dirLight.shadow.camera.left = -150;
+    dirLight.shadow.camera.right = 190;
+    dirLight.shadow.camera.top = 200;
+    dirLight.shadow.camera.bottom = -110;
     dirLight.shadow.camera.updateProjectionMatrix();
-    dirLight.position.copy(lightPos).add(new THREE.Vector3(0, 0, 100));
-    dirLight.target.position.set(0, 0, -2000);
+    dirLight.position.copy(lightPos).add(new THREE.Vector3(0, 0, 10));
+    dirLight.target.position.set(0, 0, -500);
     dirLight.target.updateMatrixWorld();
     this.scene.add(dirLight.target);
     this.scene.add(dirLight);
