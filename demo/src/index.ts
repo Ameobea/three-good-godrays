@@ -1,52 +1,51 @@
-import { EffectComposer } from "postprocessing";
-import * as THREE from "three";
-import {
-  DemoManager,
-  calculateVerticalFoV,
-  DemoManagerEvent,
-} from "three-demo";
+import { EffectComposer } from 'postprocessing';
+import * as THREE from 'three';
+import { calculateVerticalFoV, DemoManager, DemoManagerEvent } from 'three-demo';
 
-import GodraysDemo from "./godraysDemo";
+import DirlightDemo from './dirlightDemo';
+import PointlightDemo from './pointlightDemo';
 
-window.addEventListener("load", () => {
+window.addEventListener('load', () => {
   const renderer = new THREE.WebGLRenderer({
-    powerPreference: "high-performance",
+    powerPreference: 'high-performance',
     antialias: false,
   });
 
-  const viewport = document.getElementById("viewport");
+  const viewport = document.getElementById('viewport');
   if (!viewport) {
-    throw new Error("No viewport element found");
+    throw new Error('No viewport element found');
   }
 
   renderer.setSize(viewport.clientWidth, viewport.clientHeight);
 
   const manager = new DemoManager(viewport, {
-    aside: document.getElementById("aside") ?? undefined,
+    aside: document.getElementById('aside') ?? undefined,
     renderer,
   });
 
-  manager.addEventListener("change", (_event: DemoManagerEvent) => {
-    document.querySelector(".loading")?.classList.remove("hidden");
+  manager.addEventListener('change', (_event: DemoManagerEvent) => {
+    document.querySelector('.loading')?.classList.remove('hidden');
   });
 
-  manager.addEventListener("load", (_event: DemoManagerEvent) => {
-    document.querySelector(".loading")?.classList.add("hidden");
+  manager.addEventListener('load', (_event: DemoManagerEvent) => {
+    document.querySelector('.loading')?.classList.add('hidden');
   });
 
   const composer = new EffectComposer(renderer);
 
-  // Set URL hash to `#basic-godrays` to load the demo automatically.
-  window.location.hash = "basic-godrays";
+  if (!window.location.hash) {
+    window.location.hash = 'dirlight';
+  }
 
-  manager.addDemo(new GodraysDemo(composer));
+  manager.addDemo(new DirlightDemo(composer));
+  manager.addDemo(new PointlightDemo(composer));
 
   requestAnimationFrame(function render(timestamp) {
     requestAnimationFrame(render);
     manager.render(timestamp);
   });
 
-  window.addEventListener("resize", (event) => {
+  window.addEventListener('resize', event => {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const demo = manager.getCurrentDemo();
@@ -66,13 +65,13 @@ window.addEventListener("load", () => {
   });
 });
 
-document.addEventListener("DOMContentLoaded", (event: Event) => {
-  const img = document.querySelector(".info img");
-  const div = document.querySelector(".info div");
+document.addEventListener('DOMContentLoaded', (event: Event) => {
+  const img = document.querySelector('.info img');
+  const div = document.querySelector('.info div');
 
   if (img !== null && div !== null) {
-    img.addEventListener("click", () => {
-      div.classList.toggle("hidden");
+    img.addEventListener('click', () => {
+      div.classList.toggle('hidden');
     });
   }
 });

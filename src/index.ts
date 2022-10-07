@@ -4,23 +4,20 @@
  *
  * With cleanup and minor changes
  */
+import { Disposable, Pass, Resizable } from 'postprocessing';
+import * as THREE from 'three';
 
-import * as THREE from "three";
-import { Disposable, Pass, Resizable } from "postprocessing";
-
-import GodraysVertexShader from "./godrays.vert";
-import GodraysFragmentShader from "./godrays.frag";
-import GodraysCompositorShader from "./compositor.frag";
-import GodraysCompositorVertexShader from "./compositor.vert";
-import { BlueNoiseTextureDataURI } from "./bluenoise";
+import { BlueNoiseTextureDataURI } from './bluenoise';
+import GodraysCompositorShader from './compositor.frag';
+import GodraysCompositorVertexShader from './compositor.vert';
+import GodraysFragmentShader from './godrays.frag';
+import GodraysVertexShader from './godrays.vert';
 
 const GODRAYS_RESOLUTION_SCALE = 0.5;
 
 const getBlueNoiseTexture = async (): Promise<THREE.Texture> => {
   const textureLoader = new THREE.TextureLoader();
-  const blueNoiseTexture = await textureLoader.loadAsync(
-    BlueNoiseTextureDataURI
-  );
+  const blueNoiseTexture = await textureLoader.loadAsync(BlueNoiseTextureDataURI);
 
   blueNoiseTexture.wrapS = THREE.RepeatWrapping;
   blueNoiseTexture.wrapT = THREE.RepeatWrapping;
@@ -53,23 +50,20 @@ class GodraysMaterial extends THREE.ShaderMaterial {
 
     const defines: Record<string, any> = {};
     if (light instanceof THREE.PointLight || (light as any).isPointLight) {
-      defines.IS_POINT_LIGHT = "";
-    } else if (
-      light instanceof THREE.DirectionalLight ||
-      (light as any).isDirectionalLight
-    ) {
-      defines.IS_DIRECTIONAL_LIGHT = "";
+      defines.IS_POINT_LIGHT = '';
+    } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
+      defines.IS_DIRECTIONAL_LIGHT = '';
     }
 
     super({
-      name: "GodraysMaterial",
+      name: 'GodraysMaterial',
       uniforms,
       fragmentShader: GodraysFragmentShader,
       vertexShader: GodraysVertexShader,
       defines,
     });
 
-    getBlueNoiseTexture().then((blueNoiseTexture) => {
+    getBlueNoiseTexture().then(blueNoiseTexture => {
       uniforms.blueNoise.value = blueNoiseTexture;
       uniforms.noiseResolution.value.set(
         blueNoiseTexture.image.width,
@@ -86,7 +80,7 @@ class GodraysIllumPass extends Pass implements Resizable {
   private lastParams: GodraysPassParams;
 
   constructor(props: GodraysPassProps, params: GodraysPassParams) {
-    super("GodraysPass");
+    super('GodraysPass');
 
     this.props = props;
     this.lastParams = params;
@@ -126,17 +120,14 @@ class GodraysIllumPass extends Pass implements Resizable {
   ): void {
     this.material.uniforms.sceneDepth.value = depthTexture;
     if (depthPacking && depthPacking !== THREE.BasicDepthPacking) {
-      throw new Error("Only BasicDepthPacking is supported");
+      throw new Error('Only BasicDepthPacking is supported');
     }
   }
 
-  public updateUniforms(
-    { light, camera }: GodraysPassProps,
-    params: GodraysPassParams
-  ): void {
+  public updateUniforms({ light, camera }: GodraysPassProps, params: GodraysPassParams): void {
     const shadow = light.shadow;
     if (!shadow) {
-      throw new Error("Light used for godrays must have shadow");
+      throw new Error('Light used for godrays must have shadow');
     }
 
     const shadowMap = shadow.map?.texture ?? null;
@@ -147,10 +138,8 @@ class GodraysIllumPass extends Pass implements Resizable {
     uniforms.maxDensity.value = params.maxDensity;
     uniforms.lightPos.value = light.position;
     uniforms.cameraPos.value = camera.position;
-    uniforms.lightCameraProjectionMatrix.value =
-      light.shadow.camera.projectionMatrix;
-    uniforms.lightCameraMatrixWorldInverse.value =
-      light.shadow.camera.matrixWorldInverse;
+    uniforms.lightCameraProjectionMatrix.value = light.shadow.camera.projectionMatrix;
+    uniforms.lightCameraMatrixWorldInverse.value = light.shadow.camera.matrixWorldInverse;
     uniforms.cameraProjectionMatrixInv.value = camera.projectionMatrixInverse;
     uniforms.cameraMatrixWorld.value = camera.matrixWorld;
     uniforms.shadowMap.value = shadowMap;
@@ -170,16 +159,8 @@ interface GodraysCompositorMaterialProps {
   color: THREE.Color;
 }
 
-class GodraysCompositorMaterial
-  extends THREE.ShaderMaterial
-  implements Resizable
-{
-  constructor({
-    godrays,
-    edgeStrength,
-    edgeRadius,
-    color,
-  }: GodraysCompositorMaterialProps) {
+class GodraysCompositorMaterial extends THREE.ShaderMaterial implements Resizable {
+  constructor({ godrays, edgeStrength, edgeRadius, color }: GodraysCompositorMaterialProps) {
     const uniforms = {
       godrays: { value: godrays },
       sceneDiffuse: { value: null },
@@ -191,7 +172,7 @@ class GodraysCompositorMaterial
     };
 
     super({
-      name: "GodraysCompositorMaterial",
+      name: 'GodraysCompositorMaterial',
       uniforms,
       depthWrite: false,
       depthTest: false,
@@ -202,11 +183,7 @@ class GodraysCompositorMaterial
     this.updateUniforms(edgeStrength, edgeRadius, color);
   }
 
-  public updateUniforms(
-    edgeStrength: number,
-    edgeRadius: number,
-    color: THREE.Color
-  ): void {
+  public updateUniforms(edgeStrength: number, edgeRadius: number, color: THREE.Color): void {
     this.uniforms.edgeStrength.value = edgeStrength;
     this.uniforms.edgeRadius.value = edgeRadius;
     this.uniforms.color.value = color;
@@ -219,7 +196,7 @@ class GodraysCompositorMaterial
 
 class GodraysCompositorPass extends Pass implements Resizable {
   constructor(props: GodraysCompositorMaterialProps) {
-    super("GodraysCompositorPass");
+    super('GodraysCompositorPass');
     this.fullscreenMaterial = new GodraysCompositorMaterial(props);
   }
 
@@ -238,9 +215,8 @@ class GodraysCompositorPass extends Pass implements Resizable {
     _deltaTime?: number | undefined,
     _stencilTest?: boolean | undefined
   ): void {
-    (
-      this.fullscreenMaterial as GodraysCompositorMaterial
-    ).uniforms.sceneDiffuse.value = inputBuffer.texture;
+    (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDiffuse.value =
+      inputBuffer.texture;
     renderer.setRenderTarget(outputBuffer);
     renderer.render(this.scene, this.camera);
   }
@@ -250,18 +226,13 @@ class GodraysCompositorPass extends Pass implements Resizable {
     depthPacking?: THREE.DepthPackingStrategies | undefined
   ): void {
     if (depthPacking && depthPacking !== THREE.BasicDepthPacking) {
-      throw new Error("Only BasicDepthPacking is supported");
+      throw new Error('Only BasicDepthPacking is supported');
     }
-    (
-      this.fullscreenMaterial as GodraysCompositorMaterial
-    ).uniforms.sceneDepth.value = depthTexture;
+    (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth.value = depthTexture;
   }
 
   setSize(width: number, height: number): void {
-    (this.fullscreenMaterial as GodraysCompositorMaterial).setSize(
-      width,
-      height
-    );
+    (this.fullscreenMaterial as GodraysCompositorMaterial).setSize(width, height);
   }
 }
 
@@ -306,9 +277,7 @@ const defaultParams: GodraysPassParams = {
   color: new THREE.Color(0xffffff),
 };
 
-const populateParams = (
-  partialParams: Partial<GodraysPassParams>
-): GodraysPassParams => {
+const populateParams = (partialParams: Partial<GodraysPassParams>): GodraysPassParams => {
   return {
     ...defaultParams,
     ...partialParams,
@@ -357,7 +326,7 @@ export class GodraysPass extends Pass implements Disposable {
     camera: THREE.Camera,
     partialParams: Partial<GodraysPassParams> = {}
   ) {
-    super("GodraysPass");
+    super('GodraysPass');
 
     this.props = {
       light: light,
@@ -400,11 +369,7 @@ export class GodraysPass extends Pass implements Disposable {
   ): void {
     this.illumPass.render(renderer, inputBuffer, this.godraysRenderTarget);
 
-    this.compositorPass.render(
-      renderer,
-      inputBuffer,
-      this.renderToScreen ? null : outputBuffer
-    );
+    this.compositorPass.render(renderer, inputBuffer, this.renderToScreen ? null : outputBuffer);
   }
 
   setDepthTexture(

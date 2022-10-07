@@ -1,21 +1,16 @@
-import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { Demo } from "three-demo";
-import {
-  EffectComposer,
-  RenderPass,
-  SMAAEffect,
-  EffectPass,
-} from "postprocessing";
+import { EffectComposer, EffectPass, RenderPass, SMAAEffect } from 'postprocessing';
+import * as THREE from 'three';
+import { Demo } from 'three-demo';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-import { GodraysPass, GodraysPassParams } from "../../src/index";
+import { GodraysPass, GodraysPassParams } from '../../src/index';
 
-type GodraysPassParamsState = Omit<GodraysPassParams, "color"> & {
+type GodraysPassParamsState = Omit<GodraysPassParams, 'color'> & {
   color: number;
 };
 
-export default class GodraysDemo extends Demo {
+export default class DirlightDemo extends Demo {
   private composer: EffectComposer;
   private controls: OrbitControls;
   private godraysPass: GodraysPass;
@@ -29,31 +24,29 @@ export default class GodraysDemo extends Demo {
   };
 
   constructor(composer: EffectComposer) {
-    super("basic-godrays");
+    super('dirlight');
 
     this.composer = composer;
   }
 
   override async load(): Promise<void> {
     const loader = new GLTFLoader(this.loadingManager);
-    const gltf = await loader.loadAsync("/godrays_demo.glb");
+    const gltf = await loader.loadAsync('/demo_dirlight.glb');
     this.scene.add(...gltf.scene.children);
   }
 
   initialize() {
-    const pillars = this.scene.getObjectByName("pillars") as THREE.Mesh;
+    const pillars = this.scene.getObjectByName('pillars') as THREE.Mesh;
     pillars.material = new THREE.MeshStandardMaterial({
       color: 0x333333,
     });
 
-    const base = this.scene.getObjectByName("base") as THREE.Mesh;
+    const base = this.scene.getObjectByName('base') as THREE.Mesh;
     base.material = new THREE.MeshStandardMaterial({
       color: 0x333333,
     });
 
-    const lightSphere = this.scene.getObjectByName(
-      "light_sphere"
-    ) as THREE.Mesh;
+    const lightSphere = this.scene.getObjectByName('light_sphere') as THREE.Mesh;
     lightSphere.material = new THREE.MeshBasicMaterial({
       color: 0xffffff,
     });
@@ -84,7 +77,7 @@ export default class GodraysDemo extends Demo {
     backdropBack.position.set(0, 200, backdropDistance);
     this.scene.add(backdropBack);
 
-    this.scene.traverse((obj) => {
+    this.scene.traverse(obj => {
       if (obj instanceof THREE.Mesh) {
         obj.castShadow = true;
         obj.receiveShadow = true;
@@ -112,18 +105,6 @@ export default class GodraysDemo extends Demo {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = true;
 
-    // const pointLight = new THREE.PointLight(0xffffff, 0.3, 1000, 0.5);
-    // pointLight.castShadow = true;
-    // // pointLight.shadow.bias = -0.005;
-    // pointLight.shadow.mapSize.width = 1024;
-    // pointLight.shadow.mapSize.height = 1024;
-    // pointLight.shadow.autoUpdate = true;
-    // pointLight.shadow.camera.near = 0.1;
-    // pointLight.shadow.camera.far = 1000;
-    // pointLight.shadow.camera.updateProjectionMatrix();
-    // pointLight.position.copy(lightPos);
-    // this.scene.add(pointLight);
-
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
@@ -147,10 +128,7 @@ export default class GodraysDemo extends Demo {
     const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
     this.scene.add(dirLightCameraHelper);
 
-    // const light = pointLight;
-    const light = dirLight;
-
-    this.godraysPass = new GodraysPass(light, this.camera, {
+    this.godraysPass = new GodraysPass(dirLight, this.camera, {
       ...this.params,
       color: new THREE.Color(this.params.color),
     });
@@ -171,7 +149,7 @@ export default class GodraysDemo extends Demo {
   registerOptions(menu) {
     const params = this.params;
 
-    const mkOnChange = (key) => (value) => {
+    const mkOnChange = key => value => {
       params[key] = value;
       this.godraysPass.setParams({
         ...params,
@@ -179,16 +157,12 @@ export default class GodraysDemo extends Demo {
       });
     };
 
-    menu.add(params, "density", 0, 0.03).onChange(mkOnChange("density"));
-    menu.add(params, "maxDensity", 0, 1).onChange(mkOnChange("maxDensity"));
-    menu
-      .add(params, "distanceAttenuation", 0, 0.02)
-      .onChange(mkOnChange("distanceAttenuation"));
-    menu.addColor(params, "color").onChange(mkOnChange("color"));
-    menu
-      .add(params, "edgeStrength", 0, 10, 1)
-      .onChange(mkOnChange("edgeStrength"));
-    menu.add(params, "edgeRadius", 0, 10, 1).onChange(mkOnChange("edgeRadius"));
+    menu.add(params, 'density', 0, 0.03).onChange(mkOnChange('density'));
+    menu.add(params, 'maxDensity', 0, 1).onChange(mkOnChange('maxDensity'));
+    menu.add(params, 'distanceAttenuation', 0, 0.02).onChange(mkOnChange('distanceAttenuation'));
+    menu.addColor(params, 'color').onChange(mkOnChange('color'));
+    menu.add(params, 'edgeStrength', 0, 10, 1).onChange(mkOnChange('edgeStrength'));
+    menu.add(params, 'edgeRadius', 0, 10, 1).onChange(mkOnChange('edgeRadius'));
 
     if (window.innerWidth < 720) {
       menu.close();
