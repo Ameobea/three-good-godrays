@@ -73,7 +73,7 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       noiseResolution: { value: new THREE.Vector2(1, 1) },
     };
 
-    const defines = {
+   /* const defines = {
       IS_POINT_LIGHT:
         light instanceof THREE.PointLight || (light as any).isPointLight
           ? 1
@@ -83,7 +83,13 @@ class GodraysMaterial extends THREE.ShaderMaterial {
         (light as any).isDirectionalLight
           ? 1
           : 0,
-    };
+    };*/
+    const defines = {};
+    if (light instanceof THREE.PointLight || (light as any).isPointLight) {
+      defines.IS_POINT_LIGHT = "";
+    } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
+      defines.IS_DIRECTIONAL_LIGHT = "";
+    }
     console.log(defines);
 
     super({

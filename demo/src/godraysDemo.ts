@@ -156,7 +156,7 @@ export default class GodraysDemo extends Demo {
     this.godraysPass.renderToScreen = false;
     this.composer.addPass(this.godraysPass);
 
-    const smaaEffect = new SMAAEffect({ edgeDetectionMode: 0.05 });
+    const smaaEffect = new SMAAEffect();
     const smaaPass = new EffectPass(this.camera, smaaEffect);
     smaaPass.renderToScreen = true;
     this.composer.addPass(smaaPass);
