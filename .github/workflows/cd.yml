@@ -23,7 +23,7 @@ on:
       - main
 
 env:
-  INPUT_TOKEN: ''
+  INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
 
 jobs:
   deploy:
