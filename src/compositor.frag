@@ -13,6 +13,8 @@ uniform sampler2D sceneDepth;
 uniform float edgeStrength;
 uniform float edgeRadius;
 uniform vec2 resolution;
+uniform float near;
+uniform float far;
 uniform vec3 color;
 varying vec2 vUv;
 
@@ -27,14 +29,14 @@ void main() {
   vec4 diffuse = texture2D(sceneDiffuse, vUv);
 
   float rawDepth = texture2D(sceneDepth, vUv).x;
-  float correctDepth = linearize_depth(rawDepth, 0.1, 1000.0);
+  float correctDepth = linearize_depth(rawDepth, near, far);
 
   vec2 pushDir = vec2(0.0);
   float count = 0.0;
   for (float x = -edgeRadius; x <= edgeRadius; x++) {
     for (float y = -edgeRadius; y <= edgeRadius; y++) {
       vec2 sampleUv = (vUv * resolution + vec2(x, y)) / resolution;
-      float sampleDepth = linearize_depth(texture2D(sceneDepth, sampleUv).x, 0.1, 1000.0);
+      float sampleDepth = linearize_depth(texture2D(sceneDepth, sampleUv).x, near, far);
       if (abs(sampleDepth - correctDepth) < 0.05 * correctDepth) {
         pushDir += vec2(x, y);
         count += 1.0;

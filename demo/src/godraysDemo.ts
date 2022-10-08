@@ -19,13 +19,14 @@ export default class GodraysDemo extends Demo {
   private composer: EffectComposer;
   private controls: OrbitControls;
   private godraysPass: GodraysPass;
+  private light: THREE.Light;
   private params: GodraysPassParamsState = {
     density: 0.006,
     maxDensity: 2 / 3,
-    distanceAttenuation: 0.004,
+    distanceAttenuation: 2,
     color: new THREE.Color(0xffffff).getHex(),
-    edgeStrength: 1,
-    edgeRadius: 1,
+    edgeStrength: 2,
+    edgeRadius: 2,
   };
 
   constructor(composer: EffectComposer) {
@@ -93,7 +94,7 @@ export default class GodraysDemo extends Demo {
     lightSphere.castShadow = false;
     lightSphere.receiveShadow = false;
 
-    this.camera = new THREE.PerspectiveCamera(90, 16 / 9, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -111,19 +112,19 @@ export default class GodraysDemo extends Demo {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = true;
 
-    // const pointLight = new THREE.PointLight(0xffffff, 0.3, 1000, 0.5);
-    // pointLight.castShadow = true;
+   /* const pointLight = new THREE.PointLight(0xffffff, 0.3, 500, 0.5);
+    pointLight.castShadow = true;
     // // pointLight.shadow.bias = -0.005;
-    // pointLight.shadow.mapSize.width = 1024;
-    // pointLight.shadow.mapSize.height = 1024;
-    // pointLight.shadow.autoUpdate = true;
-    // pointLight.shadow.camera.near = 0.1;
-    // pointLight.shadow.camera.far = 1000;
-    // pointLight.shadow.camera.updateProjectionMatrix();
-    // pointLight.position.copy(lightPos);
-    // this.scene.add(pointLight);
+    pointLight.shadow.mapSize.width = 1024;
+    pointLight.shadow.mapSize.height = 1024;
+    pointLight.shadow.autoUpdate = true;
+    pointLight.shadow.camera.near = 0.1;
+    pointLight.shadow.camera.far = 100;
+    pointLight.shadow.camera.updateProjectionMatrix();
+    pointLight.position.copy(lightPos);
+    this.scene.add(pointLight);*/
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
+   const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
@@ -148,8 +149,8 @@ export default class GodraysDemo extends Demo {
 
     // const light = pointLight;
     const light = dirLight;
-
-    this.godraysPass = new GodraysPass(light, this.camera, {
+    this.light = light;
+    this.godraysPass = new GodraysPass(light, this.camera as THREE.PerspectiveCamera, {
       ...this.params,
       color: new THREE.Color(this.params.color),
     });
@@ -181,7 +182,7 @@ export default class GodraysDemo extends Demo {
     menu.add(params, "density", 0, 0.03).onChange(mkOnChange("density"));
     menu.add(params, "maxDensity", 0, 1).onChange(mkOnChange("maxDensity"));
     menu
-      .add(params, "distanceAttenuation", 0, 0.02)
+      .add(params, "distanceAttenuation", 0, 5)
       .onChange(mkOnChange("distanceAttenuation"));
     menu.addColor(params, "color").onChange(mkOnChange("color"));
     menu

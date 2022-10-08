@@ -13,6 +13,7 @@ import GodraysFragmentShader from "./godrays.frag";
 import GodraysCompositorShader from "./compositor.frag";
 import GodraysCompositorVertexShader from "./compositor.vert";
 import { BlueNoiseTextureDataURI } from "./bluenoise";
+import type { PerspectiveCamera } from "three";
 
 const GODRAYS_RESOLUTION_SCALE = 0.5;
 
@@ -51,12 +52,17 @@ const projectPoint = (
   );
 };
 
+interface GodRaysDefines {
+  IS_POINT_LIGHT?: string;
+  IS_DIRECTIONAL_LIGHT?: string;
+}
+ 
 class GodraysMaterial extends THREE.ShaderMaterial {
   constructor(light: THREE.PointLight | THREE.DirectionalLight) {
     const uniforms = {
       density: { value: 1 / 128 },
       maxDensity: { value: 0.5 },
-      distanceAttenuation: { value: 0.005 },
+      distanceAttenuation: { value: 2 },
       sceneDepth: { value: null },
       lightPos: { value: new THREE.Vector3(0, 0, 0) },
       cameraPos: { value: new THREE.Vector3(0, 0, 0) },
@@ -71,6 +77,8 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       lightCameraFar: { value: 1000 },
       blueNoise: { value: null as THREE.Texture | null },
       noiseResolution: { value: new THREE.Vector2(1, 1) },
+      fNormals: { value: [] },
+      fConstants: { value: [] }
     };
 
    /* const defines = {
@@ -84,7 +92,7 @@ class GodraysMaterial extends THREE.ShaderMaterial {
           ? 1
           : 0,
     };*/
-    const defines = {};
+    const defines: GodRaysDefines = {};
     if (light instanceof THREE.PointLight || (light as any).isPointLight) {
       defines.IS_POINT_LIGHT = "";
     } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
@@ -191,6 +199,34 @@ class GodraysIllumPass extends Pass implements Resizable {
     uniforms.density.value = params.density;
     uniforms.maxDensity.value = params.maxDensity;
     uniforms.distanceAttenuation.value = params.distanceAttenuation;
+    if (light instanceof THREE.PointLight || (light as any).isPointLight) {
+      const frustum = new THREE.Frustum();
+      const planes = [];
+      const directions = [
+        new THREE.Vector3(1, 0, 0),
+        new THREE.Vector3(-1, 0, 0),
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(0, -1, 0),
+        new THREE.Vector3(0, 0, 1),
+        new THREE.Vector3(0, 0, -1)
+      ];
+      console.log(light.shadow.camera.far);
+      for(const direction of directions) {
+        planes.push(new THREE.Plane().setFromNormalAndCoplanarPoint(direction, light.position.clone().add(direction.clone().multiplyScalar(uniforms.lightCameraFar.value))));
+      }
+      console.log(planes);
+      uniforms.fNormals.value = planes.map(x => x.normal.clone());
+      uniforms.fConstants.value = planes.map(x => x.constant);
+      //uniforms.fNormals.value = frustum.planes.map(x => x.normal.clone().multiplyScalar(-1));
+     // uniforms.fConstants.value = frustum.planes.map(x => x.constant * -1);
+      //const boundingVol = new THREE.Box3().setFromCenterAndSize(light.position, new THREE.Vector3(uniforms.lightCameraFar.value * 2.0, uniforms.lightCameraFar.value * 2.0, uniforms.lightCameraFar.value * 2.0));
+
+    } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
+      const frustum = new THREE.Frustum();
+    frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(light.shadow.camera.projectionMatrix, light.shadow.camera.matrixWorldInverse));
+    uniforms.fNormals.value = frustum.planes.map(x => x.normal.clone().multiplyScalar(-1));
+    uniforms.fConstants.value = frustum.planes.map(x => x.constant * -1);
+    }    
   }
 }
 
@@ -199,6 +235,7 @@ interface GodraysCompositorMaterialProps {
   edgeStrength: number;
   edgeRadius: number;
   color: THREE.Color;
+  camera: THREE.PerspectiveCamera;
 }
 
 class GodraysCompositorMaterial
@@ -210,6 +247,7 @@ class GodraysCompositorMaterial
     edgeStrength,
     edgeRadius,
     color,
+    camera
   }: GodraysCompositorMaterialProps) {
     const uniforms = {
       godrays: { value: godrays },
@@ -217,6 +255,8 @@ class GodraysCompositorMaterial
       sceneDepth: { value: null },
       edgeStrength: { value: edgeStrength },
       edgeRadius: { value: edgeRadius },
+      near: { value: 0.1},
+      far: { value: 1000.0},
       color: { value: color },
       resolution: { value: new THREE.Vector2(1, 1) },
     };
@@ -230,17 +270,21 @@ class GodraysCompositorMaterial
       vertexShader: GodraysCompositorVertexShader,
     });
 
-    this.updateUniforms(edgeStrength, edgeRadius, color);
+    this.updateUniforms(edgeStrength, edgeRadius, color, camera.near, camera.far);
   }
 
   public updateUniforms(
     edgeStrength: number,
     edgeRadius: number,
-    color: THREE.Color
+    color: THREE.Color,
+    near: number,
+    far: number
   ): void {
     this.uniforms.edgeStrength.value = edgeStrength;
     this.uniforms.edgeRadius.value = edgeRadius;
     this.uniforms.color.value = color;
+    this.uniforms.near.value = near;
+    this.uniforms.far.value = far;
   }
 
   setSize(width: number, height: number): void {
@@ -248,17 +292,21 @@ class GodraysCompositorMaterial
   }
 }
 
-class GodraysCompositorPass extends Pass implements Resizable {
+class GodraysCompositorPass extends Pass  {
+  sceneCamera: PerspectiveCamera;
   constructor(props: GodraysCompositorMaterialProps) {
     super("GodraysCompositorPass");
     this.fullscreenMaterial = new GodraysCompositorMaterial(props);
+    this.sceneCamera = props.camera;
   }
 
   public updateUniforms(params: GodraysPassParams): void {
     (this.fullscreenMaterial as GodraysCompositorMaterial).updateUniforms(
       params.edgeStrength,
       params.edgeRadius,
-      params.color
+      params.color,
+      this.sceneCamera.near,
+      this.sceneCamera.far
     );
   }
 
@@ -332,8 +380,8 @@ const defaultParams: GodraysPassParams = {
   density: 1 / 128,
   maxDensity: 0.5,
   edgeStrength: 2,
-  edgeRadius: 1,
-  distanceAttenuation: 0.005,
+  edgeRadius: 2,
+  distanceAttenuation: 2.0,
   color: new THREE.Color(0xffffff),
 };
 
@@ -385,7 +433,7 @@ export class GodraysPass extends Pass implements Disposable {
    */
   constructor(
     light: THREE.PointLight | THREE.DirectionalLight,
-    camera: THREE.Camera,
+    camera: THREE.PerspectiveCamera,
     partialParams: Partial<GodraysPassParams> = {}
   ) {
     super("GodraysPass");
@@ -404,6 +452,7 @@ export class GodraysPass extends Pass implements Disposable {
       edgeStrength: params.edgeStrength,
       edgeRadius: params.edgeRadius,
       color: params.color,
+      camera
     });
     this.compositorPass.needsDepthTexture = true;
 
