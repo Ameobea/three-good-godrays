@@ -88,7 +88,12 @@ export default class DirlightDemo extends Demo {
     lightSphere.castShadow = false;
     lightSphere.receiveShadow = false;
 
-    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -155,16 +160,12 @@ export default class DirlightDemo extends Demo {
       });
     };
 
-    menu.add(params, "density", 0, 0.03).onChange(mkOnChange("density"));
-    menu.add(params, "maxDensity", 0, 1).onChange(mkOnChange("maxDensity"));
-    menu
-      .add(params, "distanceAttenuation", 0, 5)
-      .onChange(mkOnChange("distanceAttenuation"));
-    menu.addColor(params, "color").onChange(mkOnChange("color"));
-    menu
-      .add(params, "edgeStrength", 0, 10, 1)
-      .onChange(mkOnChange("edgeStrength"));
-    menu.add(params, "edgeRadius", 0, 10, 1).onChange(mkOnChange("edgeRadius"));
+    menu.add(params, 'density', 0, 0.03).onChange(mkOnChange('density'));
+    menu.add(params, 'maxDensity', 0, 1).onChange(mkOnChange('maxDensity'));
+    menu.add(params, 'distanceAttenuation', 0, 5).onChange(mkOnChange('distanceAttenuation'));
+    menu.addColor(params, 'color').onChange(mkOnChange('color'));
+    menu.add(params, 'edgeStrength', 0, 10, 1).onChange(mkOnChange('edgeStrength'));
+    menu.add(params, 'edgeRadius', 0, 10, 1).onChange(mkOnChange('edgeRadius'));
 
     if (window.innerWidth < 720) {
       menu.close();

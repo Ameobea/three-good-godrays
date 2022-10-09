@@ -6,16 +6,13 @@
  */
 import { Disposable, Pass, Resizable } from 'postprocessing';
 import * as THREE from 'three';
+import type { PerspectiveCamera } from 'three';
 
-import * as THREE from "three";
-import { Disposable, Pass, Resizable } from "postprocessing";
-
-import GodraysVertexShader from "./godrays.vert";
-import GodraysFragmentShader from "./godrays.frag";
-import GodraysCompositorShader from "./compositor.frag";
-import GodraysCompositorVertexShader from "./compositor.vert";
-import { BlueNoiseTextureDataURI } from "./bluenoise";
-import type { PerspectiveCamera } from "three";
+import { BlueNoiseTextureDataURI } from './bluenoise';
+import GodraysCompositorShader from './compositor.frag';
+import GodraysCompositorVertexShader from './compositor.vert';
+import GodraysFragmentShader from './godrays.frag';
+import GodraysVertexShader from './godrays.vert';
 
 const GODRAYS_RESOLUTION_SCALE = 0.5;
 
@@ -30,33 +27,11 @@ const getBlueNoiseTexture = async (): Promise<THREE.Texture> => {
   return blueNoiseTexture;
 };
 
-/**
- * Projects a point `worldPos` in world space onto the shadow map of
- * `directionalLight` and returns the resulting texture coordinates.
- */
-const projectPoint = (
-  worldPos: THREE.Vector3,
-  directionalLight: THREE.DirectionalLight
-): THREE.Vector2 => {
-  const lightSpaceMatrix = new THREE.Matrix4();
-  lightSpaceMatrix.multiplyMatrices(
-    directionalLight.shadow.camera.projectionMatrix,
-    directionalLight.shadow.camera.matrixWorldInverse
-  );
-
-  const projectedPoint = worldPos.clone().applyMatrix4(lightSpaceMatrix);
-
-  return new THREE.Vector2(
-    (projectedPoint.x + 1) / 2,
-    (projectedPoint.y + 1) / 2
-  );
-};
-
 interface GodRaysDefines {
   IS_POINT_LIGHT?: string;
   IS_DIRECTIONAL_LIGHT?: string;
 }
- 
+
 class GodraysMaterial extends THREE.ShaderMaterial {
   constructor(light: THREE.PointLight | THREE.DirectionalLight) {
     const uniforms = {
@@ -78,10 +53,10 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       blueNoise: { value: null as THREE.Texture | null },
       noiseResolution: { value: new THREE.Vector2(1, 1) },
       fNormals: { value: [] },
-      fConstants: { value: [] }
+      fConstants: { value: [] },
     };
 
-   /* const defines = {
+    /* const defines = {
       IS_POINT_LIGHT:
         light instanceof THREE.PointLight || (light as any).isPointLight
           ? 1
@@ -194,7 +169,6 @@ class GodraysIllumPass extends Pass implements Resizable {
     uniforms.maxDensity.value = params.maxDensity;
     uniforms.distanceAttenuation.value = params.distanceAttenuation;
     if (light instanceof THREE.PointLight || (light as any).isPointLight) {
-      const frustum = new THREE.Frustum();
       const planes = [];
       const directions = [
         new THREE.Vector3(1, 0, 0),
@@ -202,25 +176,31 @@ class GodraysIllumPass extends Pass implements Resizable {
         new THREE.Vector3(0, 1, 0),
         new THREE.Vector3(0, -1, 0),
         new THREE.Vector3(0, 0, 1),
-        new THREE.Vector3(0, 0, -1)
+        new THREE.Vector3(0, 0, -1),
       ];
-      console.log(light.shadow.camera.far);
-      for(const direction of directions) {
-        planes.push(new THREE.Plane().setFromNormalAndCoplanarPoint(direction, light.position.clone().add(direction.clone().multiplyScalar(uniforms.lightCameraFar.value))));
+      for (const direction of directions) {
+        planes.push(
+          new THREE.Plane().setFromNormalAndCoplanarPoint(
+            direction,
+            light.position
+              .clone()
+              .add(direction.clone().multiplyScalar(uniforms.lightCameraFar.value))
+          )
+        );
       }
-      console.log(planes);
       uniforms.fNormals.value = planes.map(x => x.normal.clone());
       uniforms.fConstants.value = planes.map(x => x.constant);
-      //uniforms.fNormals.value = frustum.planes.map(x => x.normal.clone().multiplyScalar(-1));
-     // uniforms.fConstants.value = frustum.planes.map(x => x.constant * -1);
-      //const boundingVol = new THREE.Box3().setFromCenterAndSize(light.position, new THREE.Vector3(uniforms.lightCameraFar.value * 2.0, uniforms.lightCameraFar.value * 2.0, uniforms.lightCameraFar.value * 2.0));
-
     } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
       const frustum = new THREE.Frustum();
-    frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(light.shadow.camera.projectionMatrix, light.shadow.camera.matrixWorldInverse));
-    uniforms.fNormals.value = frustum.planes.map(x => x.normal.clone().multiplyScalar(-1));
-    uniforms.fConstants.value = frustum.planes.map(x => x.constant * -1);
-    }    
+      frustum.setFromProjectionMatrix(
+        new THREE.Matrix4().multiplyMatrices(
+          light.shadow.camera.projectionMatrix,
+          light.shadow.camera.matrixWorldInverse
+        )
+      );
+      uniforms.fNormals.value = frustum.planes.map(x => x.normal.clone().multiplyScalar(-1));
+      uniforms.fConstants.value = frustum.planes.map(x => x.constant * -1);
+    }
   }
 }
 
@@ -232,16 +212,13 @@ interface GodraysCompositorMaterialProps {
   camera: THREE.PerspectiveCamera;
 }
 
-class GodraysCompositorMaterial
-  extends THREE.ShaderMaterial
-  implements Resizable
-{
+class GodraysCompositorMaterial extends THREE.ShaderMaterial implements Resizable {
   constructor({
     godrays,
     edgeStrength,
     edgeRadius,
     color,
-    camera
+    camera,
   }: GodraysCompositorMaterialProps) {
     const uniforms = {
       godrays: { value: godrays },
@@ -249,8 +226,8 @@ class GodraysCompositorMaterial
       sceneDepth: { value: null },
       edgeStrength: { value: edgeStrength },
       edgeRadius: { value: edgeRadius },
-      near: { value: 0.1},
-      far: { value: 1000.0},
+      near: { value: 0.1 },
+      far: { value: 1000.0 },
       color: { value: color },
       resolution: { value: new THREE.Vector2(1, 1) },
     };
@@ -286,7 +263,7 @@ class GodraysCompositorMaterial
   }
 }
 
-class GodraysCompositorPass extends Pass  {
+class GodraysCompositorPass extends Pass {
   sceneCamera: PerspectiveCamera;
   constructor(props: GodraysCompositorMaterialProps) {
     super('GodraysCompositorPass');
@@ -438,7 +415,7 @@ export class GodraysPass extends Pass implements Disposable {
       edgeStrength: params.edgeStrength,
       edgeRadius: params.edgeRadius,
       color: params.color,
-      camera
+      camera,
     });
     this.compositorPass.needsDepthTexture = true;
 
