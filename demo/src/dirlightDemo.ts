@@ -102,10 +102,6 @@ export default class DirlightDemo extends Demo {
     renderPass.renderToScreen = false;
     this.composer.addPass(renderPass);
 
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.shadowMap.autoUpdate = true;
-
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
@@ -117,6 +113,7 @@ export default class DirlightDemo extends Demo {
     dirLight.shadow.camera.top = 200;
     dirLight.shadow.camera.bottom = -110;
     dirLight.shadow.camera.updateProjectionMatrix();
+    dirLight.shadow.autoUpdate = true;
     dirLight.position.copy(lightPos).add(new THREE.Vector3(0, 0, 10));
     dirLight.target.position.set(0, 0, -500);
     dirLight.target.updateMatrixWorld();

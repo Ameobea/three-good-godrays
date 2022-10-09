@@ -18,12 +18,18 @@ window.addEventListener('load', () => {
 
   renderer.setSize(viewport.clientWidth, viewport.clientHeight);
 
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.autoUpdate = true;
+  renderer.shadowMap.needsUpdate = true;
+
   const manager = new DemoManager(viewport, {
     aside: document.getElementById('aside') ?? undefined,
     renderer,
   });
 
   manager.addEventListener('change', (_event: DemoManagerEvent) => {
+    renderer.shadowMap.needsUpdate = true;
     document.querySelector('.loading')?.classList.remove('hidden');
   });
 

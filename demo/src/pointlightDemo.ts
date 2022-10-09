@@ -110,11 +110,14 @@ export default class PointlightDemo extends Demo {
     renderPass.renderToScreen = false;
     this.composer.addPass(renderPass);
 
+<<<<<<< HEAD
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = true;
     this.renderer.shadowMap.needsUpdate = true;
 
+=======
+>>>>>>> 890ee33d36a4b91eae812ca91fe0c52e2c2efef7
     const pointLight = new THREE.PointLight(0xffffff, 0.3, 1000, 0.5);
     pointLight.castShadow = true;
     pointLight.shadow.bias = 0.001;
@@ -124,8 +127,6 @@ export default class PointlightDemo extends Demo {
     pointLight.shadow.camera.near = 0.1;
     pointLight.shadow.camera.far = 500;
     pointLight.shadow.camera.updateProjectionMatrix();
-    pointLight.shadow.autoUpdate = false;
-    pointLight.shadow.needsUpdate = true;
     pointLight.position.copy(lightPos);
     this.scene.add(pointLight);
 
