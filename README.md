@@ -38,7 +38,7 @@ scene.traverse((obj) => {
   }
 });
 
-// godrays are cast from a pointlight
+// godrays can be cast from either `PointLight`s or `DirectionalLight`s
 const lightPos = new THREE.Vector3(0, 20, 0);
 const pointLight = new THREE.PointLight(0xffffff, 1, 10000);
 pointLight.castShadow = true;

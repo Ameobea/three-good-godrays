@@ -1,104 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8" />
     <meta name="description" content="" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>three-good-godrays demo</title>
     <script src="index.js"></script>
 
-    <script
-      async
-      defer
-      data-domain="three-good-godrays.ameo.design"
-      src="https://pause.ameo.dev/js/pause.js"
-    ></script>
+    <script async defer data-domain="three-good-godrays.ameo.design" src="https://pause.ameo.dev/js/pause.js"></script>
 
     <style type="text/css">
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        height: 100%;
-        width: 100%;
-      }
-
-      body {
-        background-color: #060606;
-        color: #ebebeb;
-        font-family: sans-serif;
-        line-height: 150%;
-        margin: 0;
-        min-height: 100vh;
-      }
-
-      aside,
-      footer {
-        position: absolute;
-        z-index: 1;
-      }
-
-      aside {
-        right: 0;
-        top: 0;
-      }
-
-      canvas {
-        display: block;
-        max-height: 100%;
-        max-width: 100%;
-      }
-
-      footer {
-        bottom: 0;
-        left: 0;
-      }
-
-      footer img {
-        cursor: pointer;
-        display: block;
-        opacity: 0.075;
-        transition: opacity 0.2s;
-      }
-
-      footer img:hover {
-        opacity: 0.25;
-      }
-
-      main {
-        height: 100%;
-      }
-
-      p {
-        margin: 0;
-      }
-
-      .loading {
-        align-items: center;
-        bottom: 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        left: 0;
-        position: absolute;
-        right: 0;
-        top: 0;
-        user-select: none;
-      }
-
-      .hidden {
-        display: none;
-      }
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+        }
+        
+        body {
+            background-color: #060606;
+            color: #ebebeb;
+            font-family: sans-serif;
+            line-height: 150%;
+            margin: 0;
+            min-height: 100vh;
+        }
+        
+        aside,
+        footer {
+            position: absolute;
+            z-index: 1;
+        }
+        
+        aside {
+            right: 0;
+            top: 0;
+        }
+        
+        canvas {
+            display: block;
+            max-height: 100%;
+            max-width: 100%;
+        }
+        
+        footer {
+            bottom: 0;
+            left: 0;
+        }
+        
+        footer img {
+            cursor: pointer;
+            display: block;
+            opacity: 0.075;
+            transition: opacity 0.2s;
+        }
+        
+        footer img:hover {
+            opacity: 0.25;
+        }
+        
+        main {
+            height: 100%;
+        }
+        
+        p {
+            margin: 0;
+        }
+        
+        .loading {
+            align-items: center;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            user-select: none;
+        }
+        
+        .hidden {
+            display: none;
+        }
     </style>
-  </head>
+</head>
 
-  <body>
+<body>
     <main id="viewport">
-      <div class="loading">
-        <p>Loading...</p>
-      </div>
+        <div class="loading">
+            <p>Loading...</p>
+        </div>
     </main>
     <aside id="aside"></aside>
-  </body>
+</body>
+
 </html>

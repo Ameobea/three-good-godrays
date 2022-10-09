@@ -1,21 +1,16 @@
-import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { Demo } from "three-demo";
-import {
-  EffectComposer,
-  RenderPass,
-  SMAAEffect,
-  EffectPass,
-} from "postprocessing";
+import { EffectComposer, EffectPass, RenderPass, SMAAEffect } from 'postprocessing';
+import * as THREE from 'three';
+import { Demo } from 'three-demo';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-import { GodraysPass, GodraysPassParams } from "../../src/index";
+import { GodraysPass, GodraysPassParams } from '../../src/index';
 
-type GodraysPassParamsState = Omit<GodraysPassParams, "color"> & {
+type GodraysPassParamsState = Omit<GodraysPassParams, 'color'> & {
   color: number;
 };
 
-export default class GodraysDemo extends Demo {
+export default class DirlightDemo extends Demo {
   private composer: EffectComposer;
   private controls: OrbitControls;
   private godraysPass: GodraysPass;
@@ -30,31 +25,29 @@ export default class GodraysDemo extends Demo {
   };
 
   constructor(composer: EffectComposer) {
-    super("basic-godrays");
+    super('dirlight');
 
     this.composer = composer;
   }
 
   override async load(): Promise<void> {
     const loader = new GLTFLoader(this.loadingManager);
-    const gltf = await loader.loadAsync("/godrays_demo.glb");
+    const gltf = await loader.loadAsync('/demo_dirlight.glb');
     this.scene.add(...gltf.scene.children);
   }
 
   initialize() {
-    const pillars = this.scene.getObjectByName("pillars") as THREE.Mesh;
+    const pillars = this.scene.getObjectByName('pillars') as THREE.Mesh;
     pillars.material = new THREE.MeshStandardMaterial({
       color: 0x333333,
     });
 
-    const base = this.scene.getObjectByName("base") as THREE.Mesh;
+    const base = this.scene.getObjectByName('base') as THREE.Mesh;
     base.material = new THREE.MeshStandardMaterial({
       color: 0x333333,
     });
 
-    const lightSphere = this.scene.getObjectByName(
-      "light_sphere"
-    ) as THREE.Mesh;
+    const lightSphere = this.scene.getObjectByName('light_sphere') as THREE.Mesh;
     lightSphere.material = new THREE.MeshBasicMaterial({
       color: 0xffffff,
     });
@@ -65,26 +58,27 @@ export default class GodraysDemo extends Demo {
 
     const backdropDistance = 200;
     // Add backdrop walls `backdropDistance` units away from the origin
-    // const backdropGeometry = new THREE.PlaneGeometry(1000, 1000);
-    // const backdropMaterial = new THREE.MeshBasicMaterial({
-    //   color: 0x000000,
-    // });
-    // const backdropLeft = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    // backdropLeft.position.set(-backdropDistance, 0, 0);
-    // backdropLeft.rotateY(Math.PI / 2);
-    // this.scene.add(backdropLeft);
-    // const backdropRight = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    // backdropRight.position.set(backdropDistance, 0, 0);
-    // backdropRight.rotateY(Math.PI / 2);
-    // this.scene.add(backdropRight);
+    const backdropGeometry = new THREE.PlaneGeometry(400, 400);
+    const backdropMaterial = new THREE.MeshBasicMaterial({
+      color: 0x200808,
+      side: THREE.DoubleSide,
+    });
+    const backdropLeft = new THREE.Mesh(backdropGeometry, backdropMaterial);
+    backdropLeft.position.set(-backdropDistance, 200, 0);
+    backdropLeft.rotateY(Math.PI / 2);
+    this.scene.add(backdropLeft);
+    const backdropRight = new THREE.Mesh(backdropGeometry, backdropMaterial);
+    backdropRight.position.set(backdropDistance, 200, 0);
+    backdropRight.rotateY(Math.PI / 2);
+    this.scene.add(backdropRight);
     // const backdropFront = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    // backdropFront.position.set(0, 0, -backdropDistance);
+    // backdropFront.position.set(0, 200, -backdropDistance);
     // this.scene.add(backdropFront);
-    // const backdropBack = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    // backdropBack.position.set(0, 0, backdropDistance);
-    // this.scene.add(backdropBack);
+    const backdropBack = new THREE.Mesh(backdropGeometry, backdropMaterial);
+    backdropBack.position.set(0, 200, backdropDistance);
+    this.scene.add(backdropBack);
 
-    this.scene.traverse((obj) => {
+    this.scene.traverse(obj => {
       if (obj instanceof THREE.Mesh) {
         obj.castShadow = true;
         obj.receiveShadow = true;
@@ -112,31 +106,19 @@ export default class GodraysDemo extends Demo {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = true;
 
-   /* const pointLight = new THREE.PointLight(0xffffff, 0.3, 500, 0.5);
-    pointLight.castShadow = true;
-    // // pointLight.shadow.bias = -0.005;
-    pointLight.shadow.mapSize.width = 1024;
-    pointLight.shadow.mapSize.height = 1024;
-    pointLight.shadow.autoUpdate = true;
-    pointLight.shadow.camera.near = 0.1;
-    pointLight.shadow.camera.far = 100;
-    pointLight.shadow.camera.updateProjectionMatrix();
-    pointLight.position.copy(lightPos);
-    this.scene.add(pointLight);*/
-
-   const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     dirLight.shadow.camera.near = 0.1;
-    dirLight.shadow.camera.far = 1000;
-    dirLight.shadow.camera.left = -300;
-    dirLight.shadow.camera.right = 300;
-    dirLight.shadow.camera.top = 300;
-    dirLight.shadow.camera.bottom = -300;
+    dirLight.shadow.camera.far = 500;
+    dirLight.shadow.camera.left = -150;
+    dirLight.shadow.camera.right = 190;
+    dirLight.shadow.camera.top = 200;
+    dirLight.shadow.camera.bottom = -110;
     dirLight.shadow.camera.updateProjectionMatrix();
-    dirLight.position.copy(lightPos).add(new THREE.Vector3(0, 0, 100));
-    dirLight.target.position.set(0, 0, -2000);
+    dirLight.position.copy(lightPos).add(new THREE.Vector3(0, 0, 10));
+    dirLight.target.position.set(0, 0, -500);
     dirLight.target.updateMatrixWorld();
     this.scene.add(dirLight.target);
     this.scene.add(dirLight);
@@ -147,10 +129,7 @@ export default class GodraysDemo extends Demo {
     const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
     this.scene.add(dirLightCameraHelper);
 
-    // const light = pointLight;
-    const light = dirLight;
-    this.light = light;
-    this.godraysPass = new GodraysPass(light, this.camera as THREE.PerspectiveCamera, {
+    this.godraysPass = new GodraysPass(dirLight, this.camera as THREE.PerspectiveCamera, {
       ...this.params,
       color: new THREE.Color(this.params.color),
     });
@@ -171,7 +150,7 @@ export default class GodraysDemo extends Demo {
   registerOptions(menu) {
     const params = this.params;
 
-    const mkOnChange = (key) => (value) => {
+    const mkOnChange = key => value => {
       params[key] = value;
       this.godraysPass.setParams({
         ...params,

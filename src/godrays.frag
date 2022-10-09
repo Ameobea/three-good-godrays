@@ -125,10 +125,6 @@ float sdPlane( vec3 p, vec3 n, float h )
 }
 void main() {
   float depth = texture2D(sceneDepth, vUv).x;
-  // if (depth == 1.) {
-  //   gl_FragColor = vec4(0.0, 1., 0., 1.);
-  //   return;
-  // }
 
   vec3 worldPos = WorldPosFromDepth(depth, vUv);
   // vec2 tempUV = projectToShadowMap(worldPos);
