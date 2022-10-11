@@ -26,8 +26,6 @@ float linearize_depth (float d, float zNear, float zFar) {
 }
 
 void main() {
-  vec4 diffuse = texture2D(sceneDiffuse, vUv);
-
   float rawDepth = texture2D(sceneDepth, vUv).x;
   float correctDepth = linearize_depth(rawDepth, near, far);
 
@@ -36,7 +34,9 @@ void main() {
   for (float x = -edgeRadius; x <= edgeRadius; x++) {
     for (float y = -edgeRadius; y <= edgeRadius; y++) {
       vec2 sampleUv = (vUv * resolution + vec2(x, y)) / resolution;
-      float sampleDepth = linearize_depth(texture2D(sceneDepth, sampleUv).x, near, far);
+      // float sampleDepth = linearize_depth(texture2D(sceneDepth, sampleUv).x, near, far);
+      float sampleDepth = texelFetch(sceneDepth, ivec2(sampleUv * resolution), 0).x;
+      sampleDepth = linearize_depth(sampleDepth, near, far);
       if (abs(sampleDepth - correctDepth) < 0.05 * correctDepth) {
         pushDir += vec2(x, y);
         count += 1.0;
@@ -53,7 +53,8 @@ void main() {
   vec2 sampleUv = length(pushDir) > 0.0 ? vUv + edgeStrength * (pushDir / resolution) : vUv;
   float bestChoice = texture2D(godrays, sampleUv).x;
 
-  gl_FragColor = vec4(mix(diffuse.rgb, color, bestChoice), 1.0);
+  vec3 diffuse = texture2D(sceneDiffuse, vUv).rgb;
+  gl_FragColor = vec4(mix(diffuse, color, bestChoice), 1.0);
 
   #include <dithering_fragment>
 }

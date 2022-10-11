@@ -26,6 +26,8 @@ uniform float maxDensity;
 uniform float distanceAttenuation;
 uniform vec3[6] fNormals;
 uniform float[6] fConstants;
+uniform float raymarchSteps;
+
 #include <packing>
 
 vec3 WorldPosFromDepth(float depth, vec2 coord) {
@@ -118,11 +120,11 @@ vec2 inShadow(vec3 worldPos) {
   return vec2(float(difference > 0.0), lightDist);
 }
 
-float sdPlane( vec3 p, vec3 n, float h )
-{
+float sdPlane(vec3 p, vec3 n, float h) {
   // n must be normalized
-  return dot(p,n) + h;
+  return dot(p, n) + h;
 }
+
 void main() {
   float depth = texture2D(sceneDepth, vUv).x;
 
@@ -135,7 +137,7 @@ void main() {
   // gl_FragColor = vec4(tempUV, 0.0, 1.0);
   // return;
   float inBoxDist = -10000.0;
-  for(int i = 0; i < 6; i++) {
+  for (int i = 0; i < 6; i++) {
     inBoxDist = max(inBoxDist, sdPlane(cameraPos, fNormals[i], fConstants[i]));
   }
   bool inBox = false;
@@ -146,21 +148,21 @@ void main() {
   if (inBox) {
     for(int i = 0; i < 6; i++) {
       if (sdPlane(worldPos, fNormals[i], fConstants[i]) > 0.0) {
-          vec3 direction = normalize(worldPos - cameraPos);
-          float denom = dot(fNormals[i], direction);
-          float t = -(dot(cameraPos, fNormals[i]) + fConstants[i]) / denom;
-          worldPos = cameraPos + t * direction;
+        vec3 direction = normalize(worldPos - cameraPos);
+        float denom = dot(fNormals[i], direction);
+        float t = -(dot(cameraPos, fNormals[i]) + fConstants[i]) / denom;
+        worldPos = cameraPos + t * direction;
       }
     }
   } else {
     vec3 direction = normalize(worldPos - cameraPos);
     float minT = 10000.0;
-     for(int i = 0; i < 6; i++) {
-        float denom = dot(fNormals[i], direction);
-        float t = -(dot(cameraPos, fNormals[i]) + fConstants[i]) / denom;
-        if (t < minT && t > 0.0) {
-          minT = t;
-        }
+    for (int i = 0; i < 6; i++) {
+      float denom = dot(fNormals[i], direction);
+      float t = -(dot(cameraPos, fNormals[i]) + fConstants[i]) / denom;
+      if (t < minT && t > 0.0) {
+        minT = t;
+      }
     }
     if (minT == 10000.0) {
       gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
@@ -168,8 +170,8 @@ void main() {
     } else {
       startPos = cameraPos + (minT + 0.001) * direction;
     }
-   float  endInBoxDist = -10000.0;
-    for(int i = 0; i < 6; i++) {
+    float endInBoxDist = -10000.0;
+    for (int i = 0; i < 6; i++) {
       endInBoxDist = max(endInBoxDist, sdPlane(worldPos, fNormals[i], fConstants[i]));
     }
     bool endInBox = false;
@@ -177,31 +179,34 @@ void main() {
       endInBox = true;
     }
     if (!endInBox) {
-       float minT = 10000.0;
-        for(int i = 0; i < 6; i++) {
-            if (sdPlane(worldPos, fNormals[i], fConstants[i]) > 0.0) {
-            float denom = dot(fNormals[i], direction);
-            float t = -(dot(startPos, fNormals[i]) + fConstants[i]) / denom;
-            if (t < minT && t > 0.0) {
-              minT = t;
-            }
-            }
+      float minT = 10000.0;
+      for (int i = 0; i < 6; i++) {
+        if (sdPlane(worldPos, fNormals[i], fConstants[i]) > 0.0) {
+          float denom = dot(fNormals[i], direction);
+          float t = -(dot(startPos, fNormals[i]) + fConstants[i]) / denom;
+          if (t < minT && t > 0.0) {
+            minT = t;
+          }
         }
-        if (minT < distance(worldPos, startPos)) {
-          worldPos = startPos + minT * direction;
-        }
+      }
+
+      if (minT < distance(worldPos, startPos)) {
+        worldPos = startPos + minT * direction;
+      }
     }
   }
   float illum = 0.0;
 
   vec4 blueNoiseSample = texture2D(blueNoise, vUv * (resolution / noiseResolution));
-  float samples = round(60.0 + 8.0 * blueNoiseSample.x);
-  for (float i = 0.0; i < samples; i++) {
-    vec3 samplePos = mix(startPos, worldPos, i / samples);
+  // int samples = int(round(raymarchSteps + 8. * blueNoiseSample.x));
+  int samples = int(round(raymarchSteps + ((raymarchSteps / 8.) + 2.) * blueNoiseSample.x));
+  float samplesFloat = float(samples);
+  for (int i = 0; i < samples; i++) {
+    vec3 samplePos = mix(startPos, worldPos, float(i) / samplesFloat);
     vec2 shadowInfo = inShadow(samplePos);
     float shadowAmount = (1.0 - shadowInfo.x);
     illum += shadowAmount * (distance(startPos, worldPos) * density) * pow(1.0 - shadowInfo.y / lightCameraFar, distanceAttenuation);// * exp(-distanceAttenuation * shadowInfo.y);
   }
-  illum /= samples;
+  illum /= samplesFloat;
   gl_FragColor = vec4(vec3(clamp((1.0 - exp(-illum)), 0.0, maxDensity)), depth);
 }

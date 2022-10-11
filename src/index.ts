@@ -4,17 +4,19 @@
  *
  * With cleanup and minor changes
  */
-import { Disposable, Pass, Resizable } from 'postprocessing';
+import { Disposable, KernelSize, Pass, Resizable } from 'postprocessing';
 import * as THREE from 'three';
 import type { PerspectiveCamera } from 'three';
 
+import BilateralFilterFragmentShader from './bilateralFilter.frag';
 import { BlueNoiseTextureDataURI } from './bluenoise';
-import GodraysCompositorShader from './compositor.frag';
+import GodraysCompositorFragmentShader from './compositor.frag';
 import GodraysCompositorVertexShader from './compositor.vert';
 import GodraysFragmentShader from './godrays.frag';
 import GodraysVertexShader from './godrays.vert';
 
-const GODRAYS_RESOLUTION_SCALE = 0.5;
+const GODRAYS_RESOLUTION_SCALE = 1 / 2;
+const GODRAYS_BLUR_RESOLUTION_SCALE = 1;
 
 const getBlueNoiseTexture = async (): Promise<THREE.Texture> => {
   const textureLoader = new THREE.TextureLoader();
@@ -24,8 +26,68 @@ const getBlueNoiseTexture = async (): Promise<THREE.Texture> => {
   blueNoiseTexture.wrapT = THREE.RepeatWrapping;
   blueNoiseTexture.magFilter = THREE.NearestFilter;
   blueNoiseTexture.minFilter = THREE.NearestFilter;
+  blueNoiseTexture.generateMipmaps = false;
   return blueNoiseTexture;
 };
+
+class BilateralFilterMaterial extends THREE.ShaderMaterial {
+  constructor(input: THREE.Texture) {
+    super({
+      uniforms: {
+        tInput: { value: input },
+        resolution: {
+          value: new THREE.Vector2(
+            input.image.width * GODRAYS_BLUR_RESOLUTION_SCALE,
+            input.image.height * GODRAYS_BLUR_RESOLUTION_SCALE
+          ),
+        },
+        bSigma: { value: 0 },
+      },
+      defines: {
+        KSIZE_ENUM: KernelSize.SMALL,
+      },
+      vertexShader: GodraysCompositorVertexShader,
+      fragmentShader: BilateralFilterFragmentShader,
+    });
+  }
+}
+
+class BilateralFilterPass extends Pass implements Resizable, Disposable {
+  public material: BilateralFilterMaterial;
+
+  constructor(input: THREE.Texture) {
+    super('BilateralFilterPass');
+    this.needsSwap = false;
+    this.material = new BilateralFilterMaterial(input);
+
+    this.fullscreenMaterial = this.material;
+  }
+
+  setSize(width: number, height: number): void {
+    this.material.uniforms.resolution.value.set(width, height);
+  }
+
+  render(
+    renderer: THREE.WebGLRenderer,
+    _inputBuffer: THREE.WebGLRenderTarget,
+    outputBuffer: THREE.WebGLRenderTarget,
+    _deltaTime?: number | undefined,
+    _stencilTest?: boolean | undefined
+  ): void {
+    renderer.setRenderTarget(outputBuffer);
+    renderer.render(this.scene, this.camera);
+  }
+
+  public updateUniforms(params: GodraysBlurParams) {
+    this.material.uniforms.bSigma.value = params.variance;
+    this.material.defines.KSIZE_ENUM = params.kernelSize;
+  }
+
+  public dispose() {
+    this.material.dispose();
+    super.dispose();
+  }
+}
 
 interface GodRaysDefines {
   IS_POINT_LIGHT?: string;
@@ -54,19 +116,9 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       noiseResolution: { value: new THREE.Vector2(1, 1) },
       fNormals: { value: [] },
       fConstants: { value: [] },
+      raymarchSteps: { value: 60 },
     };
 
-    /* const defines = {
-      IS_POINT_LIGHT:
-        light instanceof THREE.PointLight || (light as any).isPointLight
-          ? 1
-          : 0,
-      IS_DIRECTIONAL_LIGHT:
-        light instanceof THREE.DirectionalLight ||
-        (light as any).isDirectionalLight
-          ? 1
-          : 0,
-    };*/
     const defines: GodRaysDefines = {};
     if (light instanceof THREE.PointLight || (light as any).isPointLight) {
       defines.IS_POINT_LIGHT = '';
@@ -168,6 +220,8 @@ class GodraysIllumPass extends Pass implements Resizable {
     uniforms.density.value = params.density;
     uniforms.maxDensity.value = params.maxDensity;
     uniforms.distanceAttenuation.value = params.distanceAttenuation;
+    uniforms.raymarchSteps.value = params.raymarchSteps;
+
     if (light instanceof THREE.PointLight || (light as any).isPointLight) {
       const planes = [];
       const directions = [
@@ -237,7 +291,7 @@ class GodraysCompositorMaterial extends THREE.ShaderMaterial implements Resizabl
       uniforms,
       depthWrite: false,
       depthTest: false,
-      fragmentShader: GodraysCompositorShader,
+      fragmentShader: GodraysCompositorFragmentShader,
       vertexShader: GodraysCompositorVertexShader,
     });
 
@@ -314,31 +368,73 @@ interface GodraysPassProps {
   camera: THREE.Camera;
 }
 
+export interface GodraysBlurParams {
+  /**
+   * The sigma factor used by the bilateral filter for the blur.  Higher values result in more blur, but
+   * can cause artifacts.
+   *
+   * Default: 0.1
+   */
+  variance: number;
+  /**
+   * The kernel size for the bilateral filter.  Higher values blur more neighboring pixels and can smooth over higher amounts of noise,
+   * but require exponentially more texture samples and thus can be slower.
+   *
+   * Default: `KernelSize.SMALL`
+   */
+  kernelSize: KernelSize;
+}
+
 export interface GodraysPassParams {
   /**
    * The rate of accumulation for the godrays.  Higher values roughly equate to more humid air/denser fog.
+   *
+   * Default: 1 / 128
    */
   density: number;
   /**
    * The maximum density of the godrays.  Limits the maximum brightness of the godrays.
+   *
+   * Default: 0.5
    */
   maxDensity: number;
   /**
-   * TODO: Document this
+   * Default: 2
    */
   edgeStrength: number;
   /**
-   * TODO: Document this
+   * Edge radius used for depth-aware upsampling of the godrays.  Higher values can yield better edge quality at the cost of performance, as
+   * each level higher of this requires two additional texture samples.
+   *
+   * Default: 2
    */
   edgeRadius: number;
   /**
    * Higher values decrease the accumulation of godrays the further away they are from the light source.
+   *
+   * Default: 2
    */
   distanceAttenuation: number;
   /**
    * The color of the godrays.
+   *
+   * Default: `new THREE.Color(0xffffff)`
    */
   color: THREE.Color;
+  /**
+   * The number of raymarching steps to take per pixel.  Higher values increase the quality of the godrays at the cost of performance.
+   *
+   * Default: 60
+   */
+  raymarchSteps: number;
+  /**
+   * Whether or not to apply a bilateral blur to the godrays.  This can be used to reduce artifacts that can occur when using a low number of raymarching steps.
+   *
+   * It costs a bit of extra performance, but can allow for a lower number of raymarching steps to be used with similar quality.
+   *
+   * Default: false
+   */
+  blur: boolean | Partial<GodraysBlurParams>;
 }
 
 const defaultParams: GodraysPassParams = {
@@ -346,8 +442,10 @@ const defaultParams: GodraysPassParams = {
   maxDensity: 0.5,
   edgeStrength: 2,
   edgeRadius: 2,
-  distanceAttenuation: 2.0,
+  distanceAttenuation: 2,
   color: new THREE.Color(0xffffff),
+  raymarchSteps: 60,
+  blur: false,
 };
 
 const populateParams = (partialParams: Partial<GodraysPassParams>): GodraysPassParams => {
@@ -358,15 +456,36 @@ const populateParams = (partialParams: Partial<GodraysPassParams>): GodraysPassP
   };
 };
 
+const defaultGodraysBlurParams: GodraysBlurParams = {
+  variance: 0.1,
+  kernelSize: KernelSize.SMALL,
+};
+
+const populateGodraysBlurParams = (
+  blur: boolean | Partial<GodraysBlurParams>
+): GodraysBlurParams => {
+  if (typeof blur === 'boolean') {
+    return { ...defaultGodraysBlurParams };
+  }
+  return { ...defaultGodraysBlurParams, ...blur };
+};
+
 export class GodraysPass extends Pass implements Disposable {
   private props: GodraysPassProps;
+  private depthTexture: THREE.Texture | null = null;
+  private depthPacking: THREE.DepthPackingStrategies | null | undefined = null;
+  private lastParams: GodraysPassParams;
 
   private godraysRenderTarget = new THREE.WebGLRenderTarget(1, 1, {
     minFilter: THREE.LinearFilter,
     magFilter: THREE.LinearFilter,
     format: THREE.RGBAFormat,
+    generateMipmaps: false,
   });
   private illumPass: GodraysIllumPass;
+  private enableBlurPass = false;
+  private blurPass: BilateralFilterPass | null = null;
+  private blurRenderTarget: THREE.WebGLRenderTarget | null = null;
   private compositorPass: GodraysCompositorPass;
 
   /**
@@ -406,6 +525,7 @@ export class GodraysPass extends Pass implements Disposable {
       camera,
     };
     const params = populateParams(partialParams);
+    this.lastParams = params;
 
     this.illumPass = new GodraysIllumPass(this.props, params);
     this.illumPass.needsDepthTexture = true;
@@ -430,8 +550,44 @@ export class GodraysPass extends Pass implements Disposable {
    */
   public setParams(partialParams: Partial<GodraysPassParams>): void {
     const params = populateParams(partialParams);
+    this.lastParams = params;
     this.illumPass.updateUniforms(this.props, params);
     this.compositorPass.updateUniforms(params);
+
+    this.enableBlurPass = !!params.blur;
+    if (params.blur && this.blurPass) {
+      const blurParams = populateGodraysBlurParams(params.blur);
+
+      if (this.blurPass.material.defines.KSIZE_ENUM !== blurParams.kernelSize) {
+        this.blurPass.dispose();
+        this.maybeInitBlur(this.godraysRenderTarget.texture);
+      }
+
+      this.blurPass.updateUniforms(blurParams);
+    }
+  }
+
+  private maybeInitBlur(input: THREE.Texture) {
+    if (!this.blurPass) {
+      this.blurPass = new BilateralFilterPass(input);
+      const blurParams = populateGodraysBlurParams(this.lastParams.blur);
+      this.blurPass.updateUniforms(blurParams);
+      if (this.depthTexture) {
+        this.blurPass.setDepthTexture(this.depthTexture, this.depthPacking ?? undefined);
+      }
+    }
+    if (!this.blurRenderTarget) {
+      this.blurRenderTarget = new THREE.WebGLRenderTarget(
+        Math.ceil(this.godraysRenderTarget.width * GODRAYS_BLUR_RESOLUTION_SCALE),
+        Math.ceil(this.godraysRenderTarget.height * GODRAYS_BLUR_RESOLUTION_SCALE),
+        {
+          minFilter: THREE.LinearFilter,
+          magFilter: THREE.LinearFilter,
+          format: THREE.RGBAFormat,
+          generateMipmaps: false,
+        }
+      );
+    }
   }
 
   render(
@@ -443,6 +599,17 @@ export class GodraysPass extends Pass implements Disposable {
   ): void {
     this.illumPass.render(renderer, inputBuffer, this.godraysRenderTarget);
 
+    if (this.enableBlurPass) {
+      this.maybeInitBlur(this.godraysRenderTarget.texture);
+
+      this.blurPass!.render(renderer, this.godraysRenderTarget, this.blurRenderTarget!);
+      (this.compositorPass.fullscreenMaterial as GodraysCompositorMaterial).uniforms.godrays.value =
+        this.blurRenderTarget!.texture;
+    } else {
+      (this.compositorPass.fullscreenMaterial as GodraysCompositorMaterial).uniforms.godrays.value =
+        this.godraysRenderTarget.texture;
+    }
+
     this.compositorPass.render(renderer, inputBuffer, this.renderToScreen ? null : outputBuffer);
   }
 
@@ -452,6 +619,8 @@ export class GodraysPass extends Pass implements Disposable {
   ): void {
     this.illumPass.setDepthTexture(depthTexture, depthPacking);
     this.compositorPass.setDepthTexture(depthTexture, depthPacking);
+    this.depthTexture = depthTexture;
+    this.depthPacking = depthPacking;
   }
 
   setSize(width: number, height: number): void {
@@ -461,12 +630,21 @@ export class GodraysPass extends Pass implements Disposable {
     );
     this.illumPass.setSize(width, height);
     this.compositorPass.setSize(width, height);
+    this.blurPass?.setSize(
+      Math.ceil(width * GODRAYS_RESOLUTION_SCALE),
+      Math.ceil(height * GODRAYS_RESOLUTION_SCALE)
+    );
+    this.blurRenderTarget?.setSize(
+      Math.ceil(width * GODRAYS_RESOLUTION_SCALE * GODRAYS_BLUR_RESOLUTION_SCALE),
+      Math.ceil(height * GODRAYS_RESOLUTION_SCALE * GODRAYS_BLUR_RESOLUTION_SCALE)
+    );
   }
 
   dispose(): void {
     this.godraysRenderTarget.dispose();
     this.illumPass.dispose();
     this.compositorPass.dispose();
+    this.blurPass?.dispose;
     super.dispose();
   }
 }

@@ -1,32 +1,14 @@
 import { EffectComposer, EffectPass, RenderPass, SMAAEffect } from 'postprocessing';
 import * as THREE from 'three';
-import { Demo } from 'three-demo';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-import { GodraysPass, GodraysPassParams } from '../../src/index';
+import { GodraysPass } from '../../src/index';
+import { BaseDemo } from './BaseDemo';
 
-type GodraysPassParamsState = Omit<GodraysPassParams, 'color'> & {
-  color: number;
-};
-
-export default class PointlightDemo extends Demo {
-  private composer: EffectComposer;
-  private controls: OrbitControls;
-  private godraysPass: GodraysPass;
-  private params: GodraysPassParamsState = {
-    density: 0.006,
-    maxDensity: 2 / 3,
-    distanceAttenuation: 2,
-    color: new THREE.Color(0xffffff).getHex(),
-    edgeStrength: 1,
-    edgeRadius: 1,
-  };
-
+export default class PointlightDemo extends BaseDemo {
   constructor(composer: EffectComposer) {
-    super('pointlight');
-
-    this.composer = composer;
+    super('pointlight', composer);
   }
 
   override async load(): Promise<void> {
@@ -143,28 +125,5 @@ export default class PointlightDemo extends Demo {
   render(deltaTime: number, timestamp?: number | undefined): void {
     this.controls.update();
     this.composer.render(deltaTime);
-  }
-
-  registerOptions(menu) {
-    const params = this.params;
-
-    const mkOnChange = key => value => {
-      params[key] = value;
-      this.godraysPass.setParams({
-        ...params,
-        color: new THREE.Color(params.color),
-      });
-    };
-
-    menu.add(params, 'density', 0, 0.03).onChange(mkOnChange('density'));
-    menu.add(params, 'maxDensity', 0, 1).onChange(mkOnChange('maxDensity'));
-    menu.add(params, 'distanceAttenuation', 0, 5).onChange(mkOnChange('distanceAttenuation'));
-    menu.addColor(params, 'color').onChange(mkOnChange('color'));
-    menu.add(params, 'edgeStrength', 0, 10, 1).onChange(mkOnChange('edgeStrength'));
-    menu.add(params, 'edgeRadius', 0, 10, 1).onChange(mkOnChange('edgeRadius'));
-
-    if (window.innerWidth < 720) {
-      menu.close();
-    }
   }
 }
