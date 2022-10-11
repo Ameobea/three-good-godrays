@@ -199,8 +199,8 @@ void main() {
 
   vec4 blueNoiseSample = texture2D(blueNoise, vUv * (resolution / noiseResolution));
   // int samples = int(round(raymarchSteps + 8. * blueNoiseSample.x));
-  int samples = int(round(raymarchSteps + ((raymarchSteps / 8.) + 2.) * blueNoiseSample.x));
-  float samplesFloat = float(samples);
+  float samplesFloat = round(raymarchSteps + ((raymarchSteps / 8.) + 2.) * blueNoiseSample.x);
+  int samples = int(samplesFloat);
   for (int i = 0; i < samples; i++) {
     vec3 samplePos = mix(startPos, worldPos, float(i) / samplesFloat);
     vec2 shadowInfo = inShadow(samplePos);
