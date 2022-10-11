@@ -4,6 +4,7 @@ import { calculateVerticalFoV, DemoManager, DemoManagerEvent } from 'three-demo'
 
 import DirlightDemo from './dirlightDemo';
 import PointlightDemo from './pointlightDemo';
+import { SponzaDemo } from './sponzaDemo';
 
 window.addEventListener('load', () => {
   const renderer = new THREE.WebGLRenderer({
@@ -45,6 +46,7 @@ window.addEventListener('load', () => {
 
   manager.addDemo(new DirlightDemo(composer));
   manager.addDemo(new PointlightDemo(composer));
+  manager.addDemo(new SponzaDemo(composer));
 
   requestAnimationFrame(function render(timestamp) {
     requestAnimationFrame(render);

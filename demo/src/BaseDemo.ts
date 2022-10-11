@@ -36,20 +36,24 @@ export class BaseDemo extends Demo {
     this.composer = composer;
   }
 
+  public onParamChange = (key: string, value: any) => {
+    this.params[key] = value;
+
+    this.godraysPass.setParams({
+      ...this.params,
+      color: new THREE.Color(this.params.color),
+      blur: this.params.enableBlur
+        ? { variance: this.params.blurVariance, kernelSize: this.params.blurKernelSize }
+        : false,
+    });
+  };
+
   registerOptions(menu: GUI) {
-    const mkOnChange = (key: string) => (value: any) => {
-      this.params[key] = value;
+    const mkOnChange = (key: string) => (value: any) => this.onParamChange(key, value);
 
-      this.godraysPass.setParams({
-        ...this.params,
-        color: new THREE.Color(this.params.color),
-        blur: this.params.enableBlur
-          ? { variance: this.params.blurVariance, kernelSize: this.params.blurKernelSize }
-          : false,
-      });
-    };
-
-    menu.add(this.params, 'density', 0, 0.03).onChange(mkOnChange('density'));
+    menu
+      .add(this.params, 'density', 0, this.id === 'sponza' ? 0.15 : 0.03)
+      .onChange(mkOnChange('density'));
     menu.add(this.params, 'maxDensity', 0, 1).onChange(mkOnChange('maxDensity'));
     menu.add(this.params, 'distanceAttenuation', 0, 5).onChange(mkOnChange('distanceAttenuation'));
     menu.addColor(this.params, 'color').onChange(mkOnChange('color'));
