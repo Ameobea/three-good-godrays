@@ -38,14 +38,14 @@ export class SponzaDemo extends BaseDemo {
     lightSphere.position.copy(lightPos);
     this.scene.add(lightSphere);
 
-    const pointLight = new THREE.PointLight(0xffffff, 2.3, 1000, 0.5);
+    const pointLight = new THREE.PointLight(0xffffff, 2.3, 25, 0.5);
     pointLight.castShadow = true;
-    pointLight.shadow.bias = -0.001;
-    pointLight.shadow.mapSize.width = 1024;
-    pointLight.shadow.mapSize.height = 1024;
+    pointLight.shadow.bias = -0.00005;
+    pointLight.shadow.mapSize.width = 1024 * 2;
+    pointLight.shadow.mapSize.height = 1024 * 2;
     pointLight.shadow.autoUpdate = true;
     pointLight.shadow.camera.near = 0.1;
-    pointLight.shadow.camera.far = 500;
+    pointLight.shadow.camera.far = 1;
     pointLight.shadow.camera.updateProjectionMatrix();
     pointLight.position.copy(lightPos);
     this.scene.add(pointLight);
