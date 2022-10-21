@@ -63,11 +63,11 @@ class BilateralFilterPass extends Pass implements Resizable, Disposable {
     this.fullscreenMaterial = this.material;
   }
 
-  setSize(width: number, height: number): void {
+  override setSize(width: number, height: number): void {
     this.material.uniforms.resolution.value.set(width, height);
   }
 
-  render(
+  override render(
     renderer: THREE.WebGLRenderer,
     _inputBuffer: THREE.WebGLRenderTarget,
     outputBuffer: THREE.WebGLRenderTarget,
@@ -83,7 +83,7 @@ class BilateralFilterPass extends Pass implements Resizable, Disposable {
     this.material.defines.KSIZE_ENUM = params.kernelSize;
   }
 
-  public dispose() {
+  public override   dispose() {
     this.material.dispose();
     super.dispose();
   }
@@ -162,14 +162,14 @@ class GodraysIllumPass extends Pass implements Resizable {
     this.fullscreenMaterial = this.material;
   }
 
-  setSize(width: number, height: number): void {
+  override setSize(width: number, height: number): void {
     this.material.uniforms.resolution.value.set(
       Math.ceil(width * GODRAYS_RESOLUTION_SCALE),
       Math.ceil(height * GODRAYS_RESOLUTION_SCALE)
     );
   }
 
-  render(
+  override render(
     renderer: THREE.WebGLRenderer,
     _inputBuffer: THREE.WebGLRenderTarget,
     outputBuffer: THREE.WebGLRenderTarget,
@@ -185,7 +185,7 @@ class GodraysIllumPass extends Pass implements Resizable {
     renderer.render(this.scene, this.camera);
   }
 
-  setDepthTexture(
+  override setDepthTexture(
     depthTexture: THREE.Texture,
     depthPacking?: THREE.DepthPackingStrategies | undefined
   ): void {
@@ -335,7 +335,7 @@ class GodraysCompositorPass extends Pass {
     );
   }
 
-  render(
+  override render(
     renderer: THREE.WebGLRenderer,
     inputBuffer: THREE.WebGLRenderTarget,
     outputBuffer: THREE.WebGLRenderTarget | null,
@@ -348,7 +348,7 @@ class GodraysCompositorPass extends Pass {
     renderer.render(this.scene, this.camera);
   }
 
-  setDepthTexture(
+  override setDepthTexture(
     depthTexture: THREE.Texture,
     depthPacking?: THREE.DepthPackingStrategies | undefined
   ): void {
@@ -358,7 +358,7 @@ class GodraysCompositorPass extends Pass {
     (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth.value = depthTexture;
   }
 
-  setSize(width: number, height: number): void {
+  override setSize(width: number, height: number): void {
     (this.fullscreenMaterial as GodraysCompositorMaterial).setSize(width, height);
   }
 }
@@ -590,7 +590,7 @@ export class GodraysPass extends Pass implements Disposable {
     }
   }
 
-  render(
+  override render(
     renderer: THREE.WebGLRenderer,
     inputBuffer: THREE.WebGLRenderTarget,
     outputBuffer: THREE.WebGLRenderTarget,
@@ -613,7 +613,7 @@ export class GodraysPass extends Pass implements Disposable {
     this.compositorPass.render(renderer, inputBuffer, this.renderToScreen ? null : outputBuffer);
   }
 
-  setDepthTexture(
+  override setDepthTexture(
     depthTexture: THREE.Texture,
     depthPacking?: THREE.DepthPackingStrategies | undefined
   ): void {
@@ -623,7 +623,7 @@ export class GodraysPass extends Pass implements Disposable {
     this.depthPacking = depthPacking;
   }
 
-  setSize(width: number, height: number): void {
+  override setSize(width: number, height: number): void {
     this.godraysRenderTarget.setSize(
       Math.ceil(width * GODRAYS_RESOLUTION_SCALE),
       Math.ceil(height * GODRAYS_RESOLUTION_SCALE)
@@ -640,7 +640,7 @@ export class GodraysPass extends Pass implements Disposable {
     );
   }
 
-  dispose(): void {
+  override dispose(): void {
     this.godraysRenderTarget.dispose();
     this.illumPass.dispose();
     this.compositorPass.dispose();
