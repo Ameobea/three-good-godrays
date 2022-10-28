@@ -105,7 +105,7 @@ export class GodraysIllumPass extends Pass implements Resizable {
       this.updateUniforms(this.props, this.lastParams);
       this.shadowMapSet = true;
     }
-    this._updateLightPosition(this.props);
+    this.updateLightPosition(this.props);
     renderer.setRenderTarget(outputBuffer);
     renderer.render(this.scene, this.camera);
   }
@@ -120,9 +120,9 @@ export class GodraysIllumPass extends Pass implements Resizable {
     }
   }
 
-  private _updateLightPosition({light, camera}: GodraysIllumPassProps) {
-		light.getWorldPosition(this.lightWorldPos);
-	}
+  private updateLightPosition({ light }: GodraysIllumPassProps) {
+    light.getWorldPosition(this.lightWorldPos);
+  }
 
   public updateUniforms({ light, camera }: GodraysIllumPassProps, params: GodraysPassParams): void {
     const shadow = light.shadow;

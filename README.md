@@ -18,14 +18,14 @@ Adapted from [original implementation](https://github.com/n8python/goodGodRays) 
 Or import from unpkg as a module:
 
 ```ts
-import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.4.0/build/three-good-godrays.esm.js';
+import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.4.1/build/three-good-godrays.esm.js';
 ```
 
 ## Usage
 
 ```ts
-import * as THREE from 'three';
 import { EffectComposer, RenderPass } from 'postprocessing';
+import * as THREE from 'three';
 import { GodraysPass } from 'three-good-godrays';
 
 const { scene, camera, renderer } = initYourScene();
@@ -37,7 +37,7 @@ renderer.shadowMap.autoUpdate = true;
 
 // Make sure to set applicable objects in your scene to cast + receive shadows
 // so that this effect will work
-scene.traverse((obj) => {
+scene.traverse(obj => {
   if (obj instanceof THREE.Mesh) {
     obj.castShadow = true;
     obj.receiveShadow = true;
@@ -78,9 +78,9 @@ requestAnimationFrame(animate);
 
 ## Develop + Run Demos Locally
 
-* Clone repo
-* `npm install`
-* `npm run prepublishOnly` to run initial builds
-* `npm install -g serve`
-* Run `node esbuild.mjs -w` in one terminal tab to automatically re-build JS when files are updated
-* Run `serve public/demo -p 5001` and visit http://localhost:5001 in your browser
+- Clone repo
+- `npm install`
+- `npm run prepublishOnly` to run initial builds
+- `npm install -g serve`
+- Run `node esbuild.mjs -w` in one terminal tab to automatically re-build JS when files are updated
+- Run `serve public/demo -p 5001` and visit http://localhost:5001 in your browser
