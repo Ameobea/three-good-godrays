@@ -18,7 +18,11 @@ Adapted from [original implementation](https://github.com/n8python/goodGodRays) 
 Or import from unpkg as a module:
 
 ```ts
+<<<<<<< HEAD
 import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.4.1/build/three-good-godrays.esm.js';
+=======
+import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.4.2/build/three-good-godrays.esm.js';
+>>>>>>> e1eda04 (Update version in readme)
 ```
 
 ## Usage
