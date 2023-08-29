@@ -1,4 +1,4 @@
-import { Pass, Resizable } from 'postprocessing';
+import { CopyPass, Pass, Resizable } from 'postprocessing';
 import * as THREE from 'three';
 import type { PerspectiveCamera } from 'three';
 
@@ -67,6 +67,9 @@ export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements R
 
 export class GodraysCompositorPass extends Pass {
   sceneCamera: PerspectiveCamera;
+  private depthCopyRenderTexture: THREE.WebGLRenderTarget | null = null;
+  private depthTextureCopyPass: CopyPass | null = null;
+
   constructor(props: GodraysCompositorMaterialProps) {
     super('GodraysCompositorPass');
     this.fullscreenMaterial = new GodraysCompositorMaterial(props);
@@ -92,8 +95,44 @@ export class GodraysCompositorPass extends Pass {
   ): void {
     (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDiffuse.value =
       inputBuffer.texture;
+
+    // There is a limitation in the pmndrs postprocessing library that causes rendering issues when
+    // the depth texture provided to the effect is the same as the one bound to the output buffer.
+    //
+    // To work around this, we copy the depth texture to a new render target and use that instead
+    // if it's found to be the same.
+    const sceneDepth = (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth
+      .value;
+    if (sceneDepth && outputBuffer && sceneDepth === outputBuffer.depthTexture) {
+      if (!this.depthCopyRenderTexture) {
+        this.depthCopyRenderTexture = new THREE.WebGLRenderTarget(
+          outputBuffer.depthTexture.image.width,
+          outputBuffer.depthTexture.image.height,
+          {
+            minFilter: outputBuffer.depthTexture.minFilter,
+            magFilter: outputBuffer.depthTexture.magFilter,
+            format: outputBuffer.depthTexture.format,
+            generateMipmaps: outputBuffer.depthTexture.generateMipmaps,
+          }
+        );
+      }
+      if (!this.depthTextureCopyPass) {
+        this.depthTextureCopyPass = new CopyPass();
+      }
+
+      this.depthTextureCopyPass.render(
+        renderer,
+        (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth.value,
+        this.depthCopyRenderTexture
+      );
+      (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth.value =
+        this.depthCopyRenderTexture.texture;
+    }
+
     renderer.setRenderTarget(outputBuffer);
     renderer.render(this.scene, this.camera);
+
+    (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth.value = sceneDepth;
   }
 
   override setDepthTexture(
