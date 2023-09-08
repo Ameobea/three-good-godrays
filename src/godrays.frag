@@ -92,7 +92,6 @@ vec3 projectToShadowMap(vec3 worldPos) {
 
 vec2 inShadow(vec3 worldPos) {
   #if defined(IS_POINT_LIGHT)
-    float texelSizeY = 1.0 / (mapSize * 2.0);
     vec2 shadowMapUV = cubeToUV(normalize(worldPos - lightPos));
   #elif defined(IS_DIRECTIONAL_LIGHT)
     vec3 shadowMapUV = projectToShadowMap(worldPos);
