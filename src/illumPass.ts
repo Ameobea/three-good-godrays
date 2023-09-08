@@ -23,12 +23,11 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       lightPos: { value: new THREE.Vector3(0, 0, 0) },
       cameraPos: { value: new THREE.Vector3(0, 0, 0) },
       resolution: { value: new THREE.Vector2(1, 1) },
-      lightCameraProjectionMatrix: { value: new THREE.Matrix4() },
-      lightCameraMatrixWorldInverse: { value: new THREE.Matrix4() },
+      premultipliedLightCameraMatrix: { value: new THREE.Matrix4() },
       cameraProjectionMatrixInv: { value: new THREE.Matrix4() },
       cameraMatrixWorld: { value: new THREE.Matrix4() },
       shadowMap: { value: null },
-      mapSize: { value: 1 },
+      texelSizeY: { value: 1 },
       lightCameraNear: { value: 0.1 },
       lightCameraFar: { value: 1000 },
       blueNoise: { value: null as THREE.Texture | null },
@@ -138,12 +137,14 @@ export class GodraysIllumPass extends Pass implements Resizable {
     uniforms.maxDensity.value = params.maxDensity;
     uniforms.lightPos.value = this.lightWorldPos;
     uniforms.cameraPos.value = camera.position;
-    uniforms.lightCameraProjectionMatrix.value = light.shadow.camera.projectionMatrix;
-    uniforms.lightCameraMatrixWorldInverse.value = light.shadow.camera.matrixWorldInverse;
+    (uniforms.premultipliedLightCameraMatrix.value as THREE.Matrix4).multiplyMatrices(
+      light.shadow.camera.projectionMatrix,
+      light.shadow.camera.matrixWorldInverse
+    );
     uniforms.cameraProjectionMatrixInv.value = camera.projectionMatrixInverse;
     uniforms.cameraMatrixWorld.value = camera.matrixWorld;
     uniforms.shadowMap.value = shadowMap;
-    uniforms.mapSize.value = mapSize;
+    uniforms.texelSizeY.value = 1 / (mapSize * 2);
     uniforms.lightCameraNear.value = shadow?.camera.near ?? 0.1;
     uniforms.lightCameraFar.value = shadow?.camera.far ?? 1000;
     uniforms.density.value = params.density;
