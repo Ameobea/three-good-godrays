@@ -43,15 +43,15 @@ vec3 WorldPosFromDepth(float depth, vec2 coord) {
  * Converts angle between light and a world position to a coordinate
  * in a point light cube shadow map
  */
-vec2 cubeToUV( vec3 v ) {
+vec2 cubeToUV(vec3 v) {
   // Number of texels to avoid at the edge of each square
-  vec3 absV = abs( v );
+  vec3 absV = abs(v);
   // Intersect unit cube
-  float scaleToCube = 1.0 / max( absV.x, max( absV.y, absV.z ) );
+  float scaleToCube = 1.0 / max(absV.x, max(absV.y, absV.z));
   absV *= scaleToCube;
   // Apply scale to avoid seams
   // two texels less per square (one texel will do for NEAREST)
-  v *= scaleToCube * ( 1.0 - 2.0 * texelSizeY );
+  v *= scaleToCube * (1.0 - 2.0 * texelSizeY);
   // Unwrap
   // space: -1 ... 1 range for each square
   //
@@ -60,21 +60,21 @@ vec2 cubeToUV( vec3 v ) {
   vec2 planar = v.xy;
   float almostATexel = 1.5 * texelSizeY;
   float almostOne = 1.0 - almostATexel;
-  if ( absV.z >= almostOne ) {
-    if ( v.z > 0.0 )
+  if (absV.z >= almostOne) {
+    if (v.z > 0.0)
       planar.x = 4.0 - v.x;
-  } else if ( absV.x >= almostOne ) {
-    float signX = sign( v.x );
+  } else if (absV.x >= almostOne) {
+    float signX = sign(v.x);
     planar.x = v.z * signX + 2.0 * signX;
-  } else if ( absV.y >= almostOne ) {
-    float signY = sign( v.y );
+  } else if (absV.y >= almostOne) {
+    float signY = sign(v.y);
     planar.x = v.x + 2.0 * signY + 2.0;
     planar.y = v.z * signY - 2.0;
   }
   // Transform to UV space
   // scale := 0.5 / dim
   // translate := ( center + 0.5 ) / dim
-  return vec2( 0.125, 0.25 ) * planar + vec2( 0.375, 0.75 );
+  return vec2(0.125, 0.25) * planar + vec2(0.375, 0.75);
 }
 
 /**
@@ -92,22 +92,22 @@ vec3 projectToShadowMap(vec3 worldPos) {
 
 vec2 inShadow(vec3 worldPos) {
   #if defined(IS_POINT_LIGHT)
-    vec2 shadowMapUV = cubeToUV(normalize(worldPos - lightPos));
+  vec2 shadowMapUV = cubeToUV(normalize(worldPos - lightPos));
   #elif defined(IS_DIRECTIONAL_LIGHT)
-    vec3 shadowMapUV = projectToShadowMap(worldPos);
-    bool isOutsideShadowMap = shadowMapUV.x < 0.0 || shadowMapUV.x > 1.0 || shadowMapUV.y < 0.0 || shadowMapUV.y > 1.0 || shadowMapUV.z < 0.0 || shadowMapUV.z > 1.0;
-    if (isOutsideShadowMap) {
-      return vec2(1.0, 0.0);
-    }
+  vec3 shadowMapUV = projectToShadowMap(worldPos);
+  bool isOutsideShadowMap = shadowMapUV.x < 0.0 || shadowMapUV.x > 1.0 || shadowMapUV.y < 0.0 || shadowMapUV.y > 1.0 || shadowMapUV.z < 0.0 || shadowMapUV.z > 1.0;
+  if (isOutsideShadowMap) {
+    return vec2(1.0, 0.0);
+  }
   #endif
 
   vec4 packedDepth = texture2D(shadowMap, shadowMapUV.xy);
   float depth = unpackRGBAToDepth(packedDepth);
   depth = lightCameraNear + (lightCameraFar - lightCameraNear) * depth;
   #if defined(IS_POINT_LIGHT)
-    float lightDist = distance(worldPos, lightPos);
+  float lightDist = distance(worldPos, lightPos);
   #elif defined(IS_DIRECTIONAL_LIGHT)
-    float lightDist = (lightCameraNear + (lightCameraFar - lightCameraNear) * shadowMapUV.z);
+  float lightDist = (lightCameraNear + (lightCameraFar - lightCameraNear) * shadowMapUV.z);
   #endif
   float difference = lightDist - depth;
   return vec2(float(difference > 0.0), lightDist);
@@ -149,7 +149,7 @@ void main() {
   if (cameraIsInBox) {
     // If the ray target is outside the shadow box, move it to the nearest
     // point on the box to avoid marching through unlit space
-    for(int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++) {
       if (sdPlane(worldPos, fNormals[i], fConstants[i]) > 0.0) {
         vec3 direction = normalize(worldPos - cameraPos);
         float t = intersectRayPlane(cameraPos, direction, fNormals[i], fConstants[i]);

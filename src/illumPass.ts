@@ -1,4 +1,4 @@
-import { Pass, Resizable } from 'postprocessing';
+import { Pass, type Resizable } from 'postprocessing';
 import * as THREE from 'three';
 
 import { getBlueNoiseTexture } from './bluenoise';

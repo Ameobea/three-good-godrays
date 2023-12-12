@@ -18,7 +18,7 @@ Adapted from [original implementation](https://github.com/n8python/goodGodRays) 
 Or import from unpkg as a module:
 
 ```ts
-import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.4.5/build/three-good-godrays.esm.js';
+import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.5.0/build/three-good-godrays.esm.js';
 ```
 
 ## Usage
@@ -58,7 +58,7 @@ pointLight.position.copy(lightPos);
 scene.add(pointLight);
 
 // set up rendering pipeline and add godrays pass at the end
-const composer = new EffectComposer(renderer);
+const composer = new EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType });
 
 const renderPass = new RenderPass(scene, camera);
 renderPass.renderToScreen = false;

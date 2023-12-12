@@ -1,6 +1,6 @@
 {
   "name": "three-good-godrays",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "description": "Screen-space raymarched godrays for three.js using the pmndrs postprocessing library",
   "main": "build/three-good-godrays.js",
   "module": "build/three-good-godrays.esm.js",
@@ -54,23 +54,23 @@
     "prettier": "prettier --write \"src/**/*.{ts,js,tsx}\" && prettier --write \"demo/**/*.{ts,js,tsx}\""
   },
   "peerDependencies": {
-    "postprocessing": "^6.33.1",
-    "three": ">= 0.125.0 <= 0.157.0"
+    "postprocessing": "^6.33.4",
+    "three": ">= 0.125.0 <= 0.159.0"
   },
   "devDependencies": {
-    "@ianvs/prettier-plugin-sort-imports": "^3.3.0",
-    "@types/dat.gui": "^0.7.7",
-    "@types/three": "^0.144.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.1.1",
+    "@types/dat.gui": "^0.7.12",
+    "@types/three": "^0.159.0",
     "dat.gui": "^0.7.9",
-    "esbuild": "^0.15.10",
+    "esbuild": "^0.19.9",
     "esbuild-plugin-glsl": "1.x.x",
     "eslint": "8.x.x",
     "npm-run-all": "^4.1.5",
-    "postprocessing": "^6.33.1",
-    "prettier": "^2.7.1",
-    "rimraf": "^3.0.2",
-    "three": "^0.155.0",
+    "postprocessing": "^6.33.4",
+    "prettier": "^3.1.1",
+    "rimraf": "^5.0.5",
+    "three": "^0.159.0",
     "three-demo": "^5.1.3",
-    "typescript": "^4.8.4"
+    "typescript": "^5.3.3"
   }
 }

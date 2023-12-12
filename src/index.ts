@@ -4,12 +4,12 @@
  *
  * With cleanup and minor changes
  */
-import { Disposable, KernelSize, Pass } from 'postprocessing';
+import { type Disposable, KernelSize, Pass } from 'postprocessing';
 import * as THREE from 'three';
 
 import { BilateralFilterPass, GODRAYS_BLUR_RESOLUTION_SCALE } from './bilateralFilter';
 import { GodraysCompositorMaterial, GodraysCompositorPass } from './compositorPass';
-import { GODRAYS_RESOLUTION_SCALE, GodraysIllumPass, GodraysIllumPassProps } from './illumPass';
+import { GODRAYS_RESOLUTION_SCALE, GodraysIllumPass, type GodraysIllumPassProps } from './illumPass';
 
 export interface GodraysBlurParams {
   /**
@@ -123,6 +123,7 @@ export class GodraysPass extends Pass implements Disposable {
     minFilter: THREE.LinearFilter,
     magFilter: THREE.LinearFilter,
     format: THREE.RGBAFormat,
+    type: THREE.HalfFloatType,
     generateMipmaps: false,
   });
   private illumPass: GodraysIllumPass;
@@ -138,7 +139,7 @@ export class GodraysPass extends Pass implements Disposable {
    * import { EffectComposer, RenderPass } from 'postprocessing';
    * import { GodraysPass } from 'three-good-godrays';
    *
-   * const composer = new EffectComposer(renderer);
+   * const composer = new EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType });
    * const renderPass = new RenderPass(scene, camera);
    * renderPass.renderToScreen = false;
    * composer.addPass(renderPass);
@@ -227,6 +228,7 @@ export class GodraysPass extends Pass implements Disposable {
           minFilter: THREE.LinearFilter,
           magFilter: THREE.LinearFilter,
           format: THREE.RGBAFormat,
+          type: THREE.HalfFloatType,
           generateMipmaps: false,
         }
       );

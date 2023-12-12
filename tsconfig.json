@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "importsNotUsedAsValues": "error",
+    "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": true,
     "module": "es2020",
@@ -15,7 +15,6 @@
     "forceConsistentCasingInFileNames": true,
     "strictFunctionTypes": true,
     "strict": true,
-    "noStrictGenericChecks": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "suppressImplicitAnyIndexErrors": false,
@@ -26,9 +25,6 @@
       "*": ["./node_modules/@types/*", "*"]
     },
     "declaration": true
-  },
-  "paths": {
-    "src/*": ["src/**/*"]
   },
   "include": ["./index.d.ts", "src/**/*"],
   "exclude": ["node_modules", "build"]

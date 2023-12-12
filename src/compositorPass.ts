@@ -1,4 +1,4 @@
-import { CopyPass, Pass, Resizable } from 'postprocessing';
+import { CopyPass, Pass, type Resizable } from 'postprocessing';
 import * as THREE from 'three';
 import type { PerspectiveCamera } from 'three';
 

@@ -24,7 +24,6 @@ const require = createRequire(import.meta.url);
 const pkg = require("./package");
 const external = Object.keys(pkg.peerDependencies || {});
 const minify = process.argv.includes("-m");
-const watch = process.argv.includes("-w");
 const plugins = [glsl({ minify })];
 
 await esbuild
@@ -37,7 +36,6 @@ await esbuild
     bundle: true,
     plugins,
     minify,
-    watch,
   })
   .catch(() => process.exit(1));
 

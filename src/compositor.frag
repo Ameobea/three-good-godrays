@@ -21,7 +21,7 @@ varying vec2 vUv;
 #define DITHERING
 #include <dithering_pars_fragment>
 
-float linearize_depth (float d, float zNear, float zFar) {
+float linearize_depth(float d, float zNear, float zFar) {
   return zNear * zFar / (zFar + d * (zNear - zFar));
 }
 
@@ -34,7 +34,6 @@ void main() {
   for (float x = -edgeRadius; x <= edgeRadius; x++) {
     for (float y = -edgeRadius; y <= edgeRadius; y++) {
       vec2 sampleUv = (vUv * resolution + vec2(x, y)) / resolution;
-      // float sampleDepth = linearize_depth(texture2D(sceneDepth, sampleUv).x, near, far);
       float sampleDepth = texelFetch(sceneDepth, ivec2(sampleUv * resolution), 0).x;
       sampleDepth = linearize_depth(sampleDepth, near, far);
       if (abs(sampleDepth - correctDepth) < 0.05 * correctDepth) {

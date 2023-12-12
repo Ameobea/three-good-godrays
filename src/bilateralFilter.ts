@@ -1,4 +1,4 @@
-import { Disposable, KernelSize, Pass, Resizable } from 'postprocessing';
+import { type Disposable, KernelSize, Pass, type Resizable } from 'postprocessing';
 import * as THREE from 'three';
 
 import BilateralFilterFragmentShader from './bilateralFilter.frag';
