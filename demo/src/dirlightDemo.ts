@@ -20,12 +20,12 @@ export default class DirlightDemo extends BaseDemo {
   initialize() {
     const pillars = this.scene.getObjectByName('pillars') as THREE.Mesh;
     pillars.material = new THREE.MeshStandardMaterial({
-      color: 0x333333,
+      color: 0x222222,
     });
 
     const base = this.scene.getObjectByName('base') as THREE.Mesh;
     base.material = new THREE.MeshStandardMaterial({
-      color: 0x333333,
+      color: 0x222222,
     });
 
     const lightSphere = this.scene.getObjectByName('light_sphere') as THREE.Mesh;
@@ -85,7 +85,6 @@ export default class DirlightDemo extends BaseDemo {
     this.controls.update();
 
     const renderPass = new RenderPass(this.scene, this.camera);
-    renderPass.renderToScreen = false;
     this.composer.addPass(renderPass);
 
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
@@ -116,12 +115,10 @@ export default class DirlightDemo extends BaseDemo {
       ...this.params,
       color: new THREE.Color(this.params.color),
     });
-    this.godraysPass.renderToScreen = false;
     this.composer.addPass(this.godraysPass);
 
     const smaaEffect = new SMAAEffect();
     const smaaPass = new EffectPass(this.camera, smaaEffect);
-    smaaPass.renderToScreen = true;
     this.composer.addPass(smaaPass);
   }
 

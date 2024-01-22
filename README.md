@@ -76,6 +76,10 @@ function animate() {
 requestAnimationFrame(animate);
 ```
 
+### Gamma Correction
+
+Gamma correction is enabled by this effect by default, matching expectations of sRGB buffers from `postprocessing`.  However, you can disable this by setting `gammaCorrection: false` in the configuration object for the pass.
+
 ## Develop + Run Demos Locally
 
 - Clone repo

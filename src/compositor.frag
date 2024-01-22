@@ -16,6 +16,7 @@ uniform vec2 resolution;
 uniform float near;
 uniform float far;
 uniform vec3 color;
+uniform bool gammaCorrection;
 varying vec2 vUv;
 
 #define DITHERING
@@ -56,4 +57,8 @@ void main() {
   gl_FragColor = vec4(mix(diffuse, color, bestChoice), 1.0);
 
   #include <dithering_fragment>
+
+  if (gammaCorrection) {
+    gl_FragColor = LinearTosRGB(gl_FragColor);
+  }
 }

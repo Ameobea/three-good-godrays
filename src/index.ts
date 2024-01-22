@@ -9,7 +9,11 @@ import * as THREE from 'three';
 
 import { BilateralFilterPass, GODRAYS_BLUR_RESOLUTION_SCALE } from './bilateralFilter';
 import { GodraysCompositorMaterial, GodraysCompositorPass } from './compositorPass';
-import { GODRAYS_RESOLUTION_SCALE, GodraysIllumPass, type GodraysIllumPassProps } from './illumPass';
+import {
+  GODRAYS_RESOLUTION_SCALE,
+  GodraysIllumPass,
+  type GodraysIllumPassProps,
+} from './illumPass';
 
 export interface GodraysBlurParams {
   /**
@@ -78,6 +82,7 @@ export interface GodraysPassParams {
    * Default: false
    */
   blur: boolean | Partial<GodraysBlurParams>;
+  gammaCorrection: boolean;
 }
 
 const defaultParams: GodraysPassParams = {
@@ -88,7 +93,8 @@ const defaultParams: GodraysPassParams = {
   distanceAttenuation: 2,
   color: new THREE.Color(0xffffff),
   raymarchSteps: 60,
-  blur: false,
+  blur: true,
+  gammaCorrection: true,
 };
 
 const populateParams = (partialParams: Partial<GodraysPassParams>): GodraysPassParams => {
@@ -127,7 +133,7 @@ export class GodraysPass extends Pass implements Disposable {
     generateMipmaps: false,
   });
   private illumPass: GodraysIllumPass;
-  private enableBlurPass = false;
+  private enableBlurPass = true;
   private blurPass: BilateralFilterPass | null = null;
   private blurRenderTarget: THREE.WebGLRenderTarget | null = null;
   private compositorPass: GodraysCompositorPass;
@@ -180,6 +186,7 @@ export class GodraysPass extends Pass implements Disposable {
       edgeRadius: params.edgeRadius,
       color: params.color,
       camera,
+      gammaCorrection: params.gammaCorrection,
     });
     this.compositorPass.needsDepthTexture = true;
 

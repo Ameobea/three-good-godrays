@@ -38,7 +38,7 @@ window.addEventListener('load', () => {
     document.querySelector('.loading')?.classList.add('hidden');
   });
 
-  const composer = new EffectComposer(renderer, { frameBufferType: THREE.FloatType });
+  const composer = new EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType });
 
   if (!window.location.hash) {
     window.location.hash = 'dirlight';

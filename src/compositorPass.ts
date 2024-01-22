@@ -12,6 +12,7 @@ interface GodraysCompositorMaterialProps {
   edgeRadius: number;
   color: THREE.Color;
   camera: THREE.PerspectiveCamera;
+  gammaCorrection: boolean;
 }
 
 export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements Resizable {
@@ -21,6 +22,7 @@ export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements R
     edgeRadius,
     color,
     camera,
+    gammaCorrection,
   }: GodraysCompositorMaterialProps) {
     const uniforms = {
       godrays: { value: godrays },
@@ -32,6 +34,7 @@ export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements R
       far: { value: 1000.0 },
       color: { value: color },
       resolution: { value: new THREE.Vector2(1, 1) },
+      gammaCorrection: { value: 1 },
     };
 
     super({
@@ -43,13 +46,14 @@ export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements R
       vertexShader: GodraysCompositorVertexShader,
     });
 
-    this.updateUniforms(edgeStrength, edgeRadius, color, camera.near, camera.far);
+    this.updateUniforms(edgeStrength, edgeRadius, color, gammaCorrection, camera.near, camera.far);
   }
 
   public updateUniforms(
     edgeStrength: number,
     edgeRadius: number,
     color: THREE.Color,
+    gammaCorrection: boolean,
     near: number,
     far: number
   ): void {
@@ -58,6 +62,7 @@ export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements R
     this.uniforms.color.value = color;
     this.uniforms.near.value = near;
     this.uniforms.far.value = far;
+    this.uniforms.gammaCorrection.value = gammaCorrection ? 1 : 0;
   }
 
   setSize(width: number, height: number): void {
@@ -81,6 +86,7 @@ export class GodraysCompositorPass extends Pass {
       params.edgeStrength,
       params.edgeRadius,
       params.color,
+      params.gammaCorrection,
       this.sceneCamera.near,
       this.sceneCamera.far
     );

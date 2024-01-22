@@ -6,6 +6,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 import { GodraysPass, GodraysPassParams } from '../../src/index';
 
+THREE.ColorManagement.enabled = true;
+
 type GodraysPassParamsState = Omit<GodraysPassParams, 'color' | 'blur'> & {
   color: number;
   enableBlur: boolean;
@@ -24,9 +26,10 @@ export class BaseDemo extends Demo {
     edgeStrength: 2,
     edgeRadius: 2,
     raymarchSteps: 60,
-    enableBlur: false,
+    enableBlur: true,
     blurVariance: 0.1,
     blurKernelSize: KernelSize.SMALL,
+    gammaCorrection: false,
   };
 
   public composer: EffectComposer;
@@ -60,7 +63,7 @@ export class BaseDemo extends Demo {
     menu.add(this.params, 'edgeStrength', 0, 10, 1).onChange(mkOnChange('edgeStrength'));
     menu.add(this.params, 'edgeRadius', 0, 10, 1).onChange(mkOnChange('edgeRadius'));
     menu.add(this.params, 'raymarchSteps', 1, 200, 1).onChange(mkOnChange('raymarchSteps'));
-    menu.add(this.params, 'enableBlur', false).onChange(mkOnChange('enableBlur'));
+    menu.add(this.params, 'enableBlur', true).onChange(mkOnChange('enableBlur'));
     menu.add(this.params, 'blurVariance', 0.001, 0.5, 0.001).onChange(mkOnChange('blurVariance'));
     menu
       .add(this.params, 'blurKernelSize', {
