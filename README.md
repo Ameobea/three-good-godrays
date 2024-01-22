@@ -64,7 +64,20 @@ const renderPass = new RenderPass(scene, camera);
 renderPass.renderToScreen = false;
 composer.addPass(renderPass);
 
-const godraysPass = new GodraysPass(pointLight, camera);
+// Default values are shown.  You can supply a sparse object or `undefined`.
+const params = {
+  density: 1 / 128,
+  maxDensity: 0.5,
+  edgeStrength: 2,
+  edgeRadius: 2,
+  distanceAttenuation: 2,
+  color: new THREE.Color(0xffffff),
+  raymarchSteps: 60,
+  blur: true,
+  gammaCorrection: true,
+};
+
+const godraysPass = new GodraysPass(pointLight, camera, params);
 // If this is the last pass in your pipeline, set `renderToScreen` to `true`
 godraysPass.renderToScreen = true;
 composer.addPass(godraysPass);
