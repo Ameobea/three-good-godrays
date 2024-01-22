@@ -8,12 +8,12 @@ import { GodraysPass, GodraysPassParams } from '../../src/index';
 
 THREE.ColorManagement.enabled = true;
 
-type GodraysPassParamsState = Omit<GodraysPassParams, 'color' | 'blur'> & {
+interface GodraysPassParamsState extends Omit<GodraysPassParams, 'color' | 'blur'> {
   color: number;
   enableBlur: boolean;
   blurVariance: number;
   blurKernelSize: KernelSize;
-};
+}
 
 export class BaseDemo extends Demo {
   public controls: OrbitControls;
@@ -29,7 +29,7 @@ export class BaseDemo extends Demo {
     enableBlur: true,
     blurVariance: 0.1,
     blurKernelSize: KernelSize.SMALL,
-    gammaCorrection: false,
+    gammaCorrection: true,
   };
 
   public composer: EffectComposer;

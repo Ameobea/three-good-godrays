@@ -78,7 +78,13 @@ requestAnimationFrame(animate);
 
 ### Gamma Correction
 
-Gamma correction is enabled by this effect by default, matching expectations of sRGB buffers from `postprocessing`.  However, you can disable this by setting `gammaCorrection: false` in the configuration object for the pass.
+Gamma correction is enabled by this effect by default, matching expectations of sRGB buffers from `postprocessing`. However, you can disable this by setting `gammaCorrection: false` in the configuration object for the pass.
+
+This may be necessary if you use other effect passes after `GodraysPass` that perform their own output encoding. If you see artifacts similar to these:
+
+![Screenshot of artifacts caused by double encoding in a Three.Js pmndrs postprocessing pipeline.  There is a grainy pattern of colorful pixels appearing over an otherwise blank black background.](https://i.ameo.link/bto.png)
+
+Try setting `gammaCorrection: false` on the `GodraysPass` or setting `encodeOutput = false` on any `EffectPass` that is added after the `GodraysPass`.
 
 ## Develop + Run Demos Locally
 
@@ -86,5 +92,5 @@ Gamma correction is enabled by this effect by default, matching expectations of 
 - `npm install`
 - `npm run prepublishOnly` to run initial builds
 - `npm install -g serve`
-- Run `node esbuild.mjs -w` in one terminal tab to automatically re-build JS when files are updated
+- Run `node esbuild.mjs` whenever files are chnaged to re-build
 - Run `serve public/demo -p 5001` and visit http://localhost:5001 in your browser

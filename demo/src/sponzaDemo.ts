@@ -80,6 +80,7 @@ export class SponzaDemo extends BaseDemo {
 
     const smaaEffect = new SMAAEffect();
     const smaaPass = new EffectPass(this.camera, smaaEffect);
+    smaaPass.encodeOutput = false;
     smaaPass.renderToScreen = true;
     this.composer.addPass(smaaPass);
 

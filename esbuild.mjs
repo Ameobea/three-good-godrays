@@ -16,23 +16,23 @@
  * This notice may not be removed or altered from any source distribution.
  */
 
-import { createRequire } from "module";
-import { glsl } from "esbuild-plugin-glsl";
-import esbuild from "esbuild";
+import { createRequire } from 'module';
+import { glsl } from 'esbuild-plugin-glsl';
+import esbuild from 'esbuild';
 
 const require = createRequire(import.meta.url);
-const pkg = require("./package");
+const pkg = require('./package');
 const external = Object.keys(pkg.peerDependencies || {});
-const minify = process.argv.includes("-m");
+const minify = process.argv.includes('-m');
 const plugins = [glsl({ minify })];
 
 await esbuild
   .build({
-    entryPoints: ["demo/src/index.ts"],
-    outdir: "public/demo",
-    target: "es6",
-    logLevel: "info",
-    format: "iife",
+    entryPoints: ['demo/src/index.ts'],
+    outdir: 'public/demo',
+    target: 'es6',
+    logLevel: 'info',
+    format: 'iife',
     bundle: true,
     plugins,
     minify,
@@ -41,11 +41,11 @@ await esbuild
 
 await esbuild
   .build({
-    entryPoints: ["src/index.ts"],
+    entryPoints: ['src/index.ts'],
     outfile: `build/${pkg.name}.esm.js`,
-    logLevel: "info",
-    format: "esm",
-    target: "es2019",
+    logLevel: 'info',
+    format: 'esm',
+    target: 'es2019',
     bundle: true,
     external,
     plugins,
@@ -54,11 +54,11 @@ await esbuild
 
 await esbuild
   .build({
-    entryPoints: ["src/index.ts"],
+    entryPoints: ['src/index.ts'],
     outfile: `build/${pkg.name}.mjs`,
-    logLevel: "info",
-    format: "esm",
-    target: "es2019",
+    logLevel: 'info',
+    format: 'esm',
+    target: 'es2019',
     bundle: true,
     external,
     plugins,
@@ -66,18 +66,18 @@ await esbuild
   .catch(() => process.exit(1));
 
 // @todo Remove in next major release.
-const globalName = pkg.name.replace(/-/g, "").toUpperCase();
+const globalName = pkg.name.replace(/-/g, '').toUpperCase();
 // const requireShim = `if(typeof window==="object"&&!window.require)window.require=()=>window.THREE;`;
 const footer = `if(typeof module==="object"&&module.exports)module.exports=${globalName};`;
 
 await esbuild
   .build({
-    entryPoints: ["src/index.ts"],
+    entryPoints: ['src/index.ts'],
     outfile: `build/${pkg.name}.js`,
     footer: { js: footer },
-    logLevel: "info",
-    format: "iife",
-    target: "es6",
+    logLevel: 'info',
+    format: 'iife',
+    target: 'es6',
     bundle: true,
     globalName,
     external,
@@ -87,12 +87,12 @@ await esbuild
 
 await esbuild
   .build({
-    entryPoints: ["src/index.ts"],
+    entryPoints: ['src/index.ts'],
     outfile: `build/${pkg.name}.min.js`,
     footer: { js: footer },
-    logLevel: "info",
-    format: "iife",
-    target: "es6",
+    logLevel: 'info',
+    format: 'iife',
+    target: 'es6',
     bundle: true,
     globalName,
     external,

@@ -105,7 +105,6 @@ export default class DirlightDemo extends BaseDemo {
     this.scene.add(dirLight.target);
     this.scene.add(dirLight);
 
-    // helper
     const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 5);
     this.scene.add(dirLightHelper);
     const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
@@ -119,6 +118,7 @@ export default class DirlightDemo extends BaseDemo {
 
     const smaaEffect = new SMAAEffect();
     const smaaPass = new EffectPass(this.camera, smaaEffect);
+    smaaPass.encodeOutput = false;
     this.composer.addPass(smaaPass);
   }
 
