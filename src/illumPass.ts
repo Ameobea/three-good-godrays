@@ -32,8 +32,8 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       lightCameraFar: { value: 1000 },
       blueNoise: { value: null as THREE.Texture | null },
       noiseResolution: { value: new THREE.Vector2(1, 1) },
-      fNormals: { value: [] },
-      fConstants: { value: [] },
+      fNormals: { value: DIRECTIONS.map(() => new THREE.Vector3()) },
+      fConstants: { value: DIRECTIONS.map(() => 0) },
       raymarchSteps: { value: 60 },
     };
 
@@ -61,6 +61,19 @@ class GodraysMaterial extends THREE.ShaderMaterial {
     });
   }
 }
+
+const DIRECTIONS = [
+  new THREE.Vector3(1, 0, 0),
+  new THREE.Vector3(-1, 0, 0),
+  new THREE.Vector3(0, 1, 0),
+  new THREE.Vector3(0, -1, 0),
+  new THREE.Vector3(0, 0, 1),
+  new THREE.Vector3(0, 0, -1),
+];
+const PLANES = DIRECTIONS.map(() => new THREE.Plane());
+const SCRATCH_VECTOR = new THREE.Vector3();
+const SCRATCH_FRUSTUM = new THREE.Frustum();
+const SCRATCH_MAT4 = new THREE.Matrix4();
 
 export interface GodraysIllumPassProps {
   light: THREE.PointLight | THREE.DirectionalLight;
@@ -104,7 +117,7 @@ export class GodraysIllumPass extends Pass implements Resizable {
       this.updateUniforms(this.props, this.lastParams);
       this.shadowMapSet = true;
     }
-    this.updateLightPosition(this.props);
+    this.updateLightParams(this.props);
     renderer.setRenderTarget(outputBuffer);
     renderer.render(this.scene, this.camera);
   }
@@ -119,8 +132,40 @@ export class GodraysIllumPass extends Pass implements Resizable {
     }
   }
 
-  private updateLightPosition({ light }: GodraysIllumPassProps) {
+  private updateLightParams({ light }: GodraysIllumPassProps) {
     light.getWorldPosition(this.lightWorldPos);
+
+    const uniforms = this.material.uniforms;
+    (uniforms.premultipliedLightCameraMatrix.value as THREE.Matrix4).multiplyMatrices(
+      light.shadow.camera.projectionMatrix,
+      light.shadow.camera.matrixWorldInverse
+    );
+
+    if (light instanceof THREE.PointLight || (light as any).isPointLight) {
+      for (let i = 0; i < DIRECTIONS.length; i += 1) {
+        const direction = DIRECTIONS[i];
+        const plane = PLANES[i];
+
+        SCRATCH_VECTOR.copy(light.position);
+        SCRATCH_VECTOR.addScaledVector(direction, uniforms.lightCameraFar.value);
+        plane.setFromNormalAndCoplanarPoint(direction, SCRATCH_VECTOR);
+
+        uniforms.fNormals.value[i].copy(plane.normal);
+        uniforms.fConstants.value[i] = plane.constant;
+      }
+    } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
+      SCRATCH_MAT4.multiplyMatrices(
+        light.shadow.camera.projectionMatrix,
+        light.shadow.camera.matrixWorldInverse
+      );
+      SCRATCH_FRUSTUM.setFromProjectionMatrix(SCRATCH_MAT4);
+
+      for (let planeIx = 0; planeIx < 6; planeIx += 1) {
+        const plane = SCRATCH_FRUSTUM.planes[planeIx];
+        uniforms.fNormals.value[planeIx].copy(plane.normal).multiplyScalar(-1);
+        uniforms.fConstants.value[planeIx] = plane.constant * -1;
+      }
+    }
   }
 
   public updateUniforms({ light, camera }: GodraysIllumPassProps, params: GodraysPassParams): void {
@@ -137,10 +182,6 @@ export class GodraysIllumPass extends Pass implements Resizable {
     uniforms.maxDensity.value = params.maxDensity;
     uniforms.lightPos.value = this.lightWorldPos;
     uniforms.cameraPos.value = camera.position;
-    (uniforms.premultipliedLightCameraMatrix.value as THREE.Matrix4).multiplyMatrices(
-      light.shadow.camera.projectionMatrix,
-      light.shadow.camera.matrixWorldInverse
-    );
     uniforms.cameraProjectionMatrixInv.value = camera.projectionMatrixInverse;
     uniforms.cameraMatrixWorld.value = camera.matrixWorld;
     uniforms.shadowMap.value = shadowMap;
@@ -151,39 +192,5 @@ export class GodraysIllumPass extends Pass implements Resizable {
     uniforms.maxDensity.value = params.maxDensity;
     uniforms.distanceAttenuation.value = params.distanceAttenuation;
     uniforms.raymarchSteps.value = params.raymarchSteps;
-
-    if (light instanceof THREE.PointLight || (light as any).isPointLight) {
-      const planes = [];
-      const directions = [
-        new THREE.Vector3(1, 0, 0),
-        new THREE.Vector3(-1, 0, 0),
-        new THREE.Vector3(0, 1, 0),
-        new THREE.Vector3(0, -1, 0),
-        new THREE.Vector3(0, 0, 1),
-        new THREE.Vector3(0, 0, -1),
-      ];
-      for (const direction of directions) {
-        planes.push(
-          new THREE.Plane().setFromNormalAndCoplanarPoint(
-            direction,
-            light.position
-              .clone()
-              .add(direction.clone().multiplyScalar(uniforms.lightCameraFar.value))
-          )
-        );
-      }
-      uniforms.fNormals.value = planes.map(x => x.normal.clone());
-      uniforms.fConstants.value = planes.map(x => x.constant);
-    } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
-      const frustum = new THREE.Frustum();
-      frustum.setFromProjectionMatrix(
-        new THREE.Matrix4().multiplyMatrices(
-          light.shadow.camera.projectionMatrix,
-          light.shadow.camera.matrixWorldInverse
-        )
-      );
-      uniforms.fNormals.value = frustum.planes.map(x => x.normal.clone().multiplyScalar(-1));
-      uniforms.fConstants.value = frustum.planes.map(x => x.constant * -1);
-    }
   }
 }
