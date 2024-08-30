@@ -109,7 +109,12 @@ export class GodraysCompositorPass extends Pass {
     // if it's found to be the same.
     const sceneDepth = (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth
       .value;
-    if (sceneDepth && outputBuffer && sceneDepth === outputBuffer.depthTexture) {
+    if (
+      sceneDepth &&
+      outputBuffer &&
+      outputBuffer.depthTexture &&
+      sceneDepth === outputBuffer.depthTexture
+    ) {
       if (!this.depthCopyRenderTexture) {
         this.depthCopyRenderTexture = new THREE.WebGLRenderTarget(
           outputBuffer.depthTexture.image.width,

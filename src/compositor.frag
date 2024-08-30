@@ -26,6 +26,10 @@ float linearize_depth(float d, float zNear, float zFar) {
   return zNear * zFar / (zFar + d * (zNear - zFar));
 }
 
+vec4 LinearTosRGB_(in vec4 value) {
+  return vec4(mix(pow(value.rgb, vec3(0.41666)) * 1.055 - vec3(0.055), value.rgb * 12.92, vec3(lessThanEqual(value.rgb, vec3(0.0031308)))), value.a);
+}
+
 void main() {
   float rawDepth = texture2D(sceneDepth, vUv).x;
   float correctDepth = linearize_depth(rawDepth, near, far);
@@ -59,6 +63,6 @@ void main() {
   #include <dithering_fragment>
 
   if (gammaCorrection) {
-    gl_FragColor = LinearTosRGB(gl_FragColor);
+    gl_FragColor = LinearTosRGB_(gl_FragColor);
   }
 }

@@ -18,8 +18,12 @@ Adapted from [original implementation](https://github.com/n8python/goodGodRays) 
 Or import from unpkg as a module:
 
 ```ts
-import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.6.1/build/three-good-godrays.esm.js';
+import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.7.0/build/three-good-godrays.esm.js';
 ```
+
+## Supported Three.JS Version
+
+This library was tested to work with Three.JS versions `>= 0.125.0 <= 0.167.0`.  Although it might work with versions outside that range, support is not guaranteed.
 
 ## Usage
 
