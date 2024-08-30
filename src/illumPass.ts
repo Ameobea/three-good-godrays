@@ -30,6 +30,8 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       texelSizeY: { value: 1 },
       lightCameraNear: { value: 0.1 },
       lightCameraFar: { value: 1000 },
+      near: { value: 0.1 },
+      far: { value: 1000.0 },
       blueNoise: { value: null as THREE.Texture | null },
       noiseResolution: { value: new THREE.Vector2(1, 1) },
       fNormals: { value: DIRECTIONS.map(() => new THREE.Vector3()) },
@@ -77,7 +79,7 @@ const SCRATCH_MAT4 = new THREE.Matrix4();
 
 export interface GodraysIllumPassProps {
   light: THREE.PointLight | THREE.DirectionalLight;
-  camera: THREE.Camera;
+  camera: THREE.PerspectiveCamera;
 }
 
 export class GodraysIllumPass extends Pass implements Resizable {
@@ -104,6 +106,8 @@ export class GodraysIllumPass extends Pass implements Resizable {
       Math.ceil(width * GODRAYS_RESOLUTION_SCALE),
       Math.ceil(height * GODRAYS_RESOLUTION_SCALE)
     );
+    this.material.uniforms.near.value = this.props.camera.near;
+    this.material.uniforms.far.value = this.props.camera.far;
   }
 
   override render(
@@ -188,6 +192,8 @@ export class GodraysIllumPass extends Pass implements Resizable {
     uniforms.texelSizeY.value = 1 / (mapSize * 2);
     uniforms.lightCameraNear.value = shadow?.camera.near ?? 0.1;
     uniforms.lightCameraFar.value = shadow?.camera.far ?? 1000;
+    uniforms.near.value = camera.near;
+    uniforms.far.value = camera.far;
     uniforms.density.value = params.density;
     uniforms.maxDensity.value = params.maxDensity;
     uniforms.distanceAttenuation.value = params.distanceAttenuation;

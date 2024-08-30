@@ -10,6 +10,7 @@ window.addEventListener('load', () => {
   const renderer = new THREE.WebGLRenderer({
     powerPreference: 'high-performance',
     antialias: false,
+    logarithmicDepthBuffer: true,
   });
 
   const viewport = document.getElementById('viewport');

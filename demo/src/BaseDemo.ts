@@ -29,7 +29,7 @@ export class BaseDemo extends Demo {
     enableBlur: true,
     blurVariance: 0.1,
     blurKernelSize: KernelSize.SMALL,
-    gammaCorrection: true,
+    gammaCorrection: false,
   };
 
   public composer: EffectComposer;

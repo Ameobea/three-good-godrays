@@ -22,8 +22,15 @@ varying vec2 vUv;
 #define DITHERING
 #include <dithering_pars_fragment>
 
-float linearize_depth(float d, float zNear, float zFar) {
-  return zNear * zFar / (zFar + d * (zNear - zFar));
+float linearize_depth(float depth, float zNear, float zFar) {
+  #if defined( USE_LOGDEPTHBUF )
+  float d = pow(2.0, depth * log2(far + 1.0)) - 1.0;
+  float a = far / (far - near);
+  float b = far * near / (near - far);
+  depth = a + b / d;
+  #endif
+
+  return zNear * zFar / (zFar + depth * (zNear - zFar));
 }
 
 vec4 LinearTosRGB_(in vec4 value) {

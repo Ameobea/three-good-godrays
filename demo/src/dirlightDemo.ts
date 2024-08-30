@@ -112,6 +112,7 @@ export default class DirlightDemo extends BaseDemo {
 
     this.godraysPass = new GodraysPass(dirLight, this.camera as THREE.PerspectiveCamera, {
       ...this.params,
+      gammaCorrection: false,
       color: new THREE.Color(this.params.color),
     });
     this.composer.addPass(this.godraysPass);

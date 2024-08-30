@@ -19,6 +19,8 @@ uniform vec2 noiseResolution;
 uniform float texelSizeY;
 uniform float lightCameraNear;
 uniform float lightCameraFar;
+uniform float near;
+uniform float far;
 uniform float density;
 uniform float maxDensity;
 uniform float distanceAttenuation;
@@ -30,6 +32,13 @@ uniform mat4 premultipliedLightCameraMatrix;
 #include <packing>
 
 vec3 WorldPosFromDepth(float depth, vec2 coord) {
+  #if defined( USE_LOGDEPTHBUF )
+  float d = pow(2.0, depth * log2(far + 1.0)) - 1.0;
+  float a = far / (far - near);
+  float b = far * near / (near - far);
+  depth = a + b / d;
+  #endif
+
   float z = depth * 2.0 - 1.0;
   vec4 clipSpacePosition = vec4(coord * 2.0 - 1.0, z, 1.0);
   vec4 viewSpacePosition = cameraProjectionMatrixInv * clipSpacePosition;
