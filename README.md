@@ -23,7 +23,7 @@ import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.7.1/build/th
 
 ## Supported Three.JS Version
 
-This library was tested to work with Three.JS versions `>= 0.125.0 <= 0.167.0`.  Although it might work with versions outside that range, support is not guaranteed.
+This library was tested to work with Three.JS versions `>= 0.125.0 <= 0.168.0`.  Although it might work with versions outside that range, support is not guaranteed.
 
 ## Usage
 
