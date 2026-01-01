@@ -76,7 +76,9 @@ export class GodraysCompositorPass extends Pass {
   private depthTextureCopyPass: CopyPass | null = null;
 
   constructor(props: GodraysCompositorMaterialProps) {
-    super('GodraysCompositorPass');
+    // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
+    // our shaders were written expecting a base `THREE.Camera`.
+    super('GodraysCompositorPass', undefined, new THREE.Camera());
     this.fullscreenMaterial = new GodraysCompositorMaterial(props);
     this.sceneCamera = props.camera;
   }

@@ -87,7 +87,7 @@ vec2 cubeToUV(vec3 v) {
 }
 
 /**
- * Projects `worldPos` onto the shadow map of a directional light and returns
+ * Projects worldPos onto the shadow map of a directional light and returns
  * that position in UV space.
  */
 vec3 projectToShadowMap(vec3 worldPos) {
@@ -123,18 +123,18 @@ vec2 inShadow(vec3 worldPos) {
 }
 
 /**
- * Calculates the signed distance from point `p` to a plane defined by
- * normal `n` and distance `h` from the origin.
+ * Calculates the signed distance from point p to a plane defined by
+ * normal n and distance h from the origin.
  *
- * `n` must be normalized.
+ * n must be normalized.
  */
 float sdPlane(vec3 p, vec3 n, float h) {
   return dot(p, n) + h;
 }
 
 /**
- * Calculates the intersection of a ray defined by `rayOrigin` and `rayDirection`
- * with a plane defined by normal `planeNormal` and distance `planeDistance`
+ * Calculates the intersection of a ray defined by rayOrigin and rayDirection
+ * with a plane defined by normal planeNormal and distance planeDistance
  *
  * Returns the distance from the ray origin to the intersection point.
  *
@@ -166,7 +166,7 @@ void main() {
       }
     }
   } else {
-    // Find the first point where the ray intersects the shadow box (`startPos`)
+    // Find the first point where the ray intersects the shadow box (startPos)
     vec3 direction = normalize(worldPos - cameraPos);
     float minT = 10000.0;
     for (int i = 0; i < 6; i++) {

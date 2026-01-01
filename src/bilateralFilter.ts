@@ -33,7 +33,9 @@ export class BilateralFilterPass extends Pass implements Resizable, Disposable {
   public material: BilateralFilterMaterial;
 
   constructor(input: THREE.Texture) {
-    super('BilateralFilterPass');
+    // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
+    // our shaders were written expecting a base `THREE.Camera`.
+    super('BilateralFilterPass', undefined, new THREE.Camera());
     this.needsSwap = false;
     this.material = new BilateralFilterMaterial(input);
 

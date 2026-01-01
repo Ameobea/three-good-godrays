@@ -90,7 +90,9 @@ export class GodraysIllumPass extends Pass implements Resizable {
   private lightWorldPos = new THREE.Vector3();
 
   constructor(props: GodraysIllumPassProps, params: GodraysPassParams) {
-    super('GodraysPass');
+    // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
+    // our shaders were written expecting a base `THREE.Camera`.
+    super('GodraysPass', undefined, new THREE.Camera());
 
     this.props = props;
     this.lastParams = params;

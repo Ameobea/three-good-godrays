@@ -168,7 +168,9 @@ export class GodraysPass extends Pass implements Disposable {
     camera: THREE.PerspectiveCamera,
     partialParams: Partial<GodraysPassParams> = {}
   ) {
-    super('GodraysPass');
+    // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
+    // our shaders were written expecting a base `THREE.Camera`.
+    super('GodraysPass', undefined, new THREE.Camera());
 
     this.props = {
       light: light,
