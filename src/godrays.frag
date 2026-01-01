@@ -14,7 +14,11 @@ uniform vec3 cameraPos;
 uniform vec2 resolution;
 uniform mat4 cameraProjectionMatrixInv;
 uniform mat4 cameraMatrixWorld;
+#if defined(USE_CUBE_SHADOWMAP)
+uniform samplerCube shadowMap;
+#else
 uniform sampler2D shadowMap;
+#endif
 uniform vec2 noiseResolution;
 uniform float texelSizeY;
 uniform float lightCameraNear;
@@ -100,6 +104,14 @@ vec3 projectToShadowMap(vec3 worldPos) {
 }
 
 vec2 inShadow(vec3 worldPos) {
+  #if defined(USE_CUBE_SHADOWMAP)
+  vec3 lightToPos = worldPos - lightPos;
+  float lightDist = length(lightToPos);
+  float shadowMapDepth = textureCube(shadowMap, lightToPos).r;
+  float depth = lightCameraNear + (lightCameraFar - lightCameraNear) * shadowMapDepth;
+  return vec2(float(lightDist > depth + 0.005), lightDist);
+  #else
+
   #if defined(IS_POINT_LIGHT)
   vec2 shadowMapUV = cubeToUV(normalize(worldPos - lightPos));
   #elif defined(IS_DIRECTIONAL_LIGHT)
@@ -111,7 +123,17 @@ vec2 inShadow(vec3 worldPos) {
   #endif
 
   vec4 packedDepth = texture2D(shadowMap, shadowMapUV.xy);
+  #if defined( USE_UNPACKED_DEPTH )
+  #if defined(IS_DIRECTIONAL_LIGHT)
+  float depth = packedDepth.x;
+  #else
+  // packing uses: gl_FragColor = vec4( vec3( 1.0 - fragCoordZ ), opacity );
+  float depth = 1. - packedDepth.x;
+  #endif
+  #else
   float depth = unpackRGBAToDepth(packedDepth);
+  #endif
+
   depth = lightCameraNear + (lightCameraFar - lightCameraNear) * depth;
   #if defined(IS_POINT_LIGHT)
   float lightDist = distance(worldPos, lightPos);
@@ -120,6 +142,7 @@ vec2 inShadow(vec3 worldPos) {
   #endif
   float difference = lightDist - depth;
   return vec2(float(difference > 0.0), lightDist);
+  #endif
 }
 
 /**

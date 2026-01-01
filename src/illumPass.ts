@@ -11,6 +11,7 @@ export const GODRAYS_RESOLUTION_SCALE = 1 / 2;
 interface GodRaysDefines {
   IS_POINT_LIGHT?: string;
   IS_DIRECTIONAL_LIGHT?: string;
+  USE_UNPACKED_DEPTH?: string;
 }
 
 class GodraysMaterial extends THREE.ShaderMaterial {
@@ -44,6 +45,10 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       defines.IS_POINT_LIGHT = '';
     } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
       defines.IS_DIRECTIONAL_LIGHT = '';
+    }
+    const threeVersion = +THREE.REVISION;
+    if (threeVersion >= 182) {
+      defines.USE_UNPACKED_DEPTH = '';
     }
 
     super({
@@ -92,7 +97,7 @@ export class GodraysIllumPass extends Pass implements Resizable {
   constructor(props: GodraysIllumPassProps, params: GodraysPassParams) {
     // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
     // our shaders were written expecting a base `THREE.Camera`.
-    super('GodraysPass', undefined, new THREE.Camera());
+    super('GodraysPass');
 
     this.props = props;
     this.lastParams = params;
@@ -180,8 +185,27 @@ export class GodraysIllumPass extends Pass implements Resizable {
       throw new Error('Light used for godrays must have shadow');
     }
 
-    const shadowMap = shadow.map?.texture ?? null;
+    let shadowMap = shadow.map?.texture ?? null;
+    if (
+      (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) &&
+      shadow.map?.depthTexture
+    ) {
+      shadowMap = shadow.map.depthTexture;
+    }
+
     const mapSize = shadow.map?.height ?? 1;
+
+    if (shadowMap && (shadowMap as any).isCubeTexture) {
+      if (this.material.defines.USE_CUBE_SHADOWMAP === undefined) {
+        this.material.defines.USE_CUBE_SHADOWMAP = '';
+        this.material.needsUpdate = true;
+      }
+    } else {
+      if (this.material.defines.USE_CUBE_SHADOWMAP !== undefined) {
+        delete this.material.defines.USE_CUBE_SHADOWMAP;
+        this.material.needsUpdate = true;
+      }
+    }
 
     const uniforms = this.material.uniforms;
     uniforms.density.value = params.density;

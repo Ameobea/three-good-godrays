@@ -23,7 +23,7 @@ import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.7.1/build/th
 
 ## Supported Three.JS Version
 
-This library was tested to work with Three.JS versions `>= 0.125.0 <= 0.168.0`.  Although it might work with versions outside that range, support is not guaranteed.
+This library was tested to work with Three.JS versions `>= 0.125.0 <= 0.182.0`.  Although it might work with versions outside that range, support is not guaranteed.
 
 ## Usage
 
@@ -109,5 +109,5 @@ Try setting `gammaCorrection: false` on the `GodraysPass` or setting `encodeOutp
 - `npm install`
 - `npm run prepublishOnly` to run initial builds
 - `npm install -g serve`
-- Run `node esbuild.mjs` whenever files are chnaged to re-build
+- Run `node esbuild.mjs` whenever files are changed to re-build
 - Run `serve public/demo -p 5001` and visit http://localhost:5001 in your browser

@@ -55,12 +55,12 @@
   },
   "peerDependencies": {
     "postprocessing": "^6.33.4",
-    "three": ">= 0.125.0 <= 0.168.0"
+    "three": ">= 0.125.0 <= 0.182.0"
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.1.1",
     "@types/dat.gui": "^0.7.12",
-    "@types/three": "^0.168.0",
+    "@types/three": "^0.182.0",
     "dat.gui": "^0.7.9",
     "esbuild": "^0.19.11",
     "esbuild-plugin-glsl": "1.x.x",
@@ -69,7 +69,7 @@
     "postprocessing": "^6.38.2",
     "prettier": "^3.2.4",
     "rimraf": "^5.0.5",
-    "three": "^0.168.0",
+    "three": "^0.182.0",
     "three-demo": "^5.1.3",
     "typescript": "^5.3.3"
   }
