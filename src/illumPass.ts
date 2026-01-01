@@ -97,7 +97,7 @@ export class GodraysIllumPass extends Pass implements Resizable {
   constructor(props: GodraysIllumPassProps, params: GodraysPassParams) {
     // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
     // our shaders were written expecting a base `THREE.Camera`.
-    super('GodraysPass');
+    super('GodraysPass', undefined, new THREE.Camera());
 
     this.props = props;
     this.lastParams = params;
