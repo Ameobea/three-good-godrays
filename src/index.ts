@@ -213,14 +213,16 @@ export class GodraysPass extends Pass implements Disposable {
 
       if (this.blurPass.material.defines.KSIZE_ENUM !== blurParams.kernelSize) {
         this.blurPass.dispose();
-        this.maybeInitBlur(this.godraysRenderTarget.texture);
+        this.maybeInitBlur(
+          this.godraysRenderTarget.texture as THREE.Texture<{ width: number; height: number }>
+        );
       }
 
       this.blurPass.updateUniforms(blurParams);
     }
   }
 
-  private maybeInitBlur(input: THREE.Texture) {
+  private maybeInitBlur(input: THREE.Texture<{ width: number; height: number }>) {
     if (!this.blurPass) {
       this.blurPass = new BilateralFilterPass(input);
       const blurParams = populateGodraysBlurParams(this.lastParams.blur);
@@ -254,7 +256,9 @@ export class GodraysPass extends Pass implements Disposable {
     this.illumPass.render(renderer, inputBuffer, this.godraysRenderTarget);
 
     if (this.enableBlurPass) {
-      this.maybeInitBlur(this.godraysRenderTarget.texture);
+      this.maybeInitBlur(
+        this.godraysRenderTarget.texture as THREE.Texture<{ width: number; height: number }>
+      );
 
       this.blurPass!.render(renderer, this.godraysRenderTarget, this.blurRenderTarget!);
       (this.compositorPass.fullscreenMaterial as GodraysCompositorMaterial).uniforms.godrays.value =

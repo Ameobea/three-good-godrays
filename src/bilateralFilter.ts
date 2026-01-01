@@ -8,7 +8,7 @@ import type { GodraysBlurParams } from './index';
 export const GODRAYS_BLUR_RESOLUTION_SCALE = 1;
 
 class BilateralFilterMaterial extends THREE.ShaderMaterial {
-  constructor(input: THREE.Texture) {
+  constructor(input: THREE.Texture<{ width: number; height: number }>) {
     super({
       uniforms: {
         tInput: { value: input },
@@ -32,7 +32,7 @@ class BilateralFilterMaterial extends THREE.ShaderMaterial {
 export class BilateralFilterPass extends Pass implements Resizable, Disposable {
   public material: BilateralFilterMaterial;
 
-  constructor(input: THREE.Texture) {
+  constructor(input: THREE.Texture<{ width: number; height: number }>) {
     // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
     // our shaders were written expecting a base `THREE.Camera`.
     super('BilateralFilterPass', undefined, new THREE.Camera());

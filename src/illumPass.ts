@@ -56,7 +56,7 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       uniforms,
       fragmentShader: GodraysFragmentShader,
       vertexShader: GodraysVertexShader,
-      defines,
+      defines: defines as any,
     });
 
     getBlueNoiseTexture().then(blueNoiseTexture => {
