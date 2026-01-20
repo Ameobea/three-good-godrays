@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+      - name: Install Node
+        uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: npm ci
+      - name: Build JS
+        run: npm run build:js
+      - name: Build types
+        run: npm run build:types
