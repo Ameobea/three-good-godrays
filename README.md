@@ -20,12 +20,35 @@ Adapted from [original implementation](https://github.com/n8python/goodGodRays) 
 Or import from unpkg as a module:
 
 ```ts
-import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.8.1/build/three-good-godrays.esm.js';
+import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.8.2/build/three-good-godrays.esm.js';
 ```
 
 ## Supported Three.JS Version
 
 This library was tested to work with Three.JS versions `>= 0.125.0 <= 0.182.0`.  Although it might work with versions outside that range, support is not guaranteed.
+
+## Shadow Map Types
+
+This library supports all Three.js shadow map types, but `PCFSoftShadowMap` or `BasicShadowMap` are recommended for best performance.
+
+The godrays effect works by raymarching through the scene and sampling the shadow map to determine which points are in shadow.  This requires reading raw depth values from the shadow map.
+
+Three.js configures shadow map depth textures differently based on the shadow map type:
+
+| Shadow Map Type | Depth Texture Mode | Godrays Compatibility |
+|-----------------|-------------------|----------------------|
+| `BasicShadowMap` | Regular sampling | Direct (best performance) |
+| `PCFSoftShadowMap` | Regular sampling | Direct (best performance) |
+| `PCFShadowMap` | Comparison sampling | Requires depth copy (slight overhead) |
+| `VSMShadowMap` | Regular sampling | Direct (best performance) |
+
+When `PCFShadowMap` is used, Three.JS enables hardware shadow comparison mode on the depth texture, which is incompatible with the regular texture sampling needed by the godrays shader.  In this case, `three-good-godrays` automatically copies the shadow map depth data to a separate texture each frame, which adds a small performance overhead.
+
+However, in upcoming versions of Three.JS (r183+), `PCFSoftShadowMap` is being deprecated/removed and will end up doing the same thing as `PCFShadowMap`.  So, it won't matter anyway.
+
+### Future Three.js Versions
+
+Three.js has indicated that `PCFSoftShadowMap` may be deprecated in future versions. The shadow map implementation details may change, and this library will be updated accordingly. If you encounter issues after a Three.js update, please check for a newer version of `three-good-godrays` or file an issue.
 
 ## Usage
 

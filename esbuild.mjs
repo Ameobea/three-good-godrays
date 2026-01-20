@@ -41,6 +41,19 @@ await esbuild
 
 await esbuild
   .build({
+    entryPoints: ['demo/src/dirlight2.ts'],
+    outdir: 'public/demo',
+    target: 'es6',
+    logLevel: 'info',
+    format: 'iife',
+    bundle: true,
+    plugins,
+    minify,
+  })
+  .catch(() => process.exit(1));
+
+await esbuild
+  .build({
     entryPoints: ['src/index.ts'],
     outfile: `build/${pkg.name}.esm.js`,
     logLevel: 'info',

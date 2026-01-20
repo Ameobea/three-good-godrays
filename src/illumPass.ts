@@ -93,6 +93,20 @@ export class GodraysIllumPass extends Pass implements Resizable {
   private props: GodraysIllumPassProps;
   private lastParams: GodraysPassParams;
   private lightWorldPos = new THREE.Vector3();
+  /**
+   * Tracks whether we need to copy the shadow map depth texture to avoid comparison mode issues.
+   *
+   * Three.js configures depth textures differently based on shadow map type:
+   * - PCFShadowMap (default): Sets compareFunction to LessEqualCompare, requiring sampler2DShadow
+   * - PCFSoftShadowMap/BasicShadowMap: Sets compareFunction to null, allowing regular sampler2D
+   *
+   * The godrays shader needs raw depth values for raymarching, so it uses sampler2D.
+   * When PCFShadowMap is used, we copy the depth data to our own texture without comparison mode
+   * using WebGL's blitFramebuffer, which copies at the GPU level without shader sampling.
+   */
+  private needsDepthCopy = false;
+  private depthCopyTarget: THREE.WebGLRenderTarget | null = null;
+  private originalShadowMap: THREE.DepthTexture | null = null;
 
   constructor(props: GodraysIllumPassProps, params: GodraysPassParams) {
     // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
@@ -127,10 +141,112 @@ export class GodraysIllumPass extends Pass implements Resizable {
     if (!this.shadowMapSet && this.props.light.shadow.map?.texture) {
       this.updateUniforms(this.props, this.lastParams);
       this.shadowMapSet = true;
+      this.checkForDepthCopy(renderer);
     }
     this.updateLightParams(this.props);
+
+    if (this.needsDepthCopy && this.originalShadowMap && this.depthCopyTarget) {
+      this.copyDepthTexture(renderer);
+      this.material.uniforms.shadowMap.value = this.depthCopyTarget.depthTexture;
+    }
+
     renderer.setRenderTarget(outputBuffer);
     renderer.render(this.scene, this.camera);
+
+    // swap back the original shadow map if we did a depth copy
+    if (this.needsDepthCopy && this.originalShadowMap) {
+      this.material.uniforms.shadowMap.value = this.originalShadowMap;
+    }
+  }
+
+  /**
+   * Copy the shadow map depth texture to our own texture without comparison mode.
+   * Uses blitFramebuffer for GPU-level copy without shader sampling.
+   */
+  private copyDepthTexture(renderer: THREE.WebGLRenderer): void {
+    const gl = renderer.getContext() as WebGL2RenderingContext;
+    const shadow = this.props.light.shadow;
+
+    const shadowMapProps = renderer.properties.get(shadow.map!) as any;
+    const srcFramebuffer = shadowMapProps.__webglFramebuffer;
+
+    const copyTargetProps = renderer.properties.get(this.depthCopyTarget!) as any;
+    let dstFramebuffer = copyTargetProps?.__webglFramebuffer;
+
+    if (!dstFramebuffer) {
+      renderer.setRenderTarget(this.depthCopyTarget);
+      renderer.clear();
+      renderer.setRenderTarget(null);
+      const updatedProps = renderer.properties.get(this.depthCopyTarget!) as any;
+      dstFramebuffer = updatedProps.__webglFramebuffer;
+    }
+
+    if (!srcFramebuffer || !dstFramebuffer) {
+      return;
+    }
+
+    const width = shadow.map!.width;
+    const height = shadow.map!.height;
+
+    // copy depth from shadow map to our own depth texture
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFramebuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, dstFramebuffer);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+
+    // Restore framebuffer state
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+  }
+
+  /**
+   * Check if the shadow map's depth texture has comparison mode enabled,
+   * which requires copying the depth texture to avoid sampler type mismatch.
+   *
+   * This check is based on the actual compareFunction value rather than shadow map type,
+   * making it robust against Three.js version differences:
+   * - r182: PCFShadowMap has compareFunction set, PCFSoftShadowMap does not
+   * - r183+: PCFSoftShadowMap is auto-converted to PCFShadowMap, so both have compareFunction set
+   */
+  private checkForDepthCopy(renderer: THREE.WebGLRenderer): void {
+    const light = this.props.light;
+    const isDirectionalOrSpot =
+      light instanceof THREE.DirectionalLight ||
+      (light as any).isDirectionalLight ||
+      light instanceof THREE.SpotLight ||
+      (light as any).isSpotLight;
+
+    if (!isDirectionalOrSpot) {
+      this.needsDepthCopy = false;
+      return;
+    }
+
+    const depthTexture = light.shadow.map?.depthTexture as THREE.DepthTexture | undefined;
+
+    // When compareFunction is set (not null), the texture requires `sampler2DShadow` in GLSL,
+    // but our shader uses `sampler2D` to read raw depth values for raymarching.
+    //
+    // In that case, we need to copy the depth data to our own texture without comparison mode.
+    const hasCompareFunction = depthTexture && depthTexture.compareFunction !== null;
+
+    if (hasCompareFunction) {
+      this.needsDepthCopy = true;
+      this.originalShadowMap = depthTexture;
+
+      const shadowMapSize = light.shadow.mapSize;
+      this.depthCopyTarget = new THREE.WebGLRenderTarget(shadowMapSize.x, shadowMapSize.y);
+      this.depthCopyTarget.depthTexture = new THREE.DepthTexture(
+        shadowMapSize.x,
+        shadowMapSize.y,
+        THREE.UnsignedIntType
+      );
+      this.depthCopyTarget.depthTexture.format = THREE.DepthFormat;
+      this.depthCopyTarget.depthTexture.compareFunction = null as any;
+      this.depthCopyTarget.depthTexture.minFilter = THREE.NearestFilter;
+      this.depthCopyTarget.depthTexture.magFilter = THREE.NearestFilter;
+    } else {
+      this.needsDepthCopy = false;
+      this.originalShadowMap = null;
+    }
   }
 
   override setDepthTexture(
