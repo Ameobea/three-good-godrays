@@ -65,19 +65,6 @@ await esbuild
   })
   .catch(() => process.exit(1));
 
-await esbuild
-  .build({
-    entryPoints: ['src/index.ts'],
-    outfile: `build/${pkg.name}.mjs`,
-    logLevel: 'info',
-    format: 'esm',
-    target: 'es2019',
-    bundle: true,
-    external,
-    plugins,
-  })
-  .catch(() => process.exit(1));
-
 // @todo Remove in next major release.
 const globalName = pkg.name.replace(/-/g, '').toUpperCase();
 // const requireShim = `if(typeof window==="object"&&!window.require)window.require=()=>window.THREE;`;

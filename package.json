@@ -1,17 +1,18 @@
 {
   "name": "three-good-godrays",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "Screen-space raymarched godrays for three.js using the pmndrs postprocessing library",
+  "type": "module",
   "main": "build/three-good-godrays.js",
   "module": "build/three-good-godrays.esm.js",
+  "types": "build/three-good-godrays.d.ts",
   "exports": {
     ".": {
+      "types": "./build/three-good-godrays.d.ts",
       "import": "./build/three-good-godrays.esm.js",
-      "require": "./build/three-good-godrays.js"
-    },
-    "./module": "./build/three-good-godrays.mjs"
+      "default": "./build/three-good-godrays.js"
+    }
   },
-  "types": "build/three-good-godrays.d.ts",
   "sideEffects": false,
   "keywords": [
     "three",
