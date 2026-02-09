@@ -1,6 +1,6 @@
 {
   "name": "three-good-godrays",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Screen-space raymarched godrays for three.js using the pmndrs postprocessing library",
   "type": "module",
   "main": "build/three-good-godrays.js",
