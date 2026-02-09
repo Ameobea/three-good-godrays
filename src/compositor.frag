@@ -41,17 +41,28 @@ void main() {
   float rawDepth = texture2D(sceneDepth, vUv).x;
   float correctDepth = linearize_depth(rawDepth, near, far);
 
+  const vec2 poissonDisk[8] = vec2[8](
+    vec2( 0.493393,  0.394269),
+    vec2( 0.798547,  0.885922),
+    vec2( 0.259143,  0.650754),
+    vec2( 0.605322,  0.023588),
+    vec2(-0.574681,  0.137452),
+    vec2(-0.430397, -0.638423),
+    vec2(-0.849487, -0.366258),
+    vec2( 0.170621, -0.569941)
+  );
+
   vec2 pushDir = vec2(0.0);
   float count = 0.0;
-  for (float x = -edgeRadius; x <= edgeRadius; x++) {
-    for (float y = -edgeRadius; y <= edgeRadius; y++) {
-      vec2 sampleUv = (vUv * resolution + vec2(x, y)) / resolution;
-      float sampleDepth = texelFetch(sceneDepth, ivec2(sampleUv * resolution), 0).x;
-      sampleDepth = linearize_depth(sampleDepth, near, far);
-      if (abs(sampleDepth - correctDepth) < 0.05 * correctDepth) {
-        pushDir += vec2(x, y);
-        count += 1.0;
-      }
+  vec2 pixelStep = 1.0 / resolution;
+  for (int i = 0; i < 8; i++) {
+    vec2 offset = poissonDisk[i] * edgeRadius;
+    vec2 sampleUv = vUv + offset * pixelStep;
+    float sampleDepth = texture2D(sceneDepth, sampleUv).x;
+    sampleDepth = linearize_depth(sampleDepth, near, far);
+    if (abs(sampleDepth - correctDepth) < 0.05 * correctDepth) {
+      pushDir += offset;
+      count += 1.0;
     }
   }
 

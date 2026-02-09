@@ -8,7 +8,6 @@
 varying vec2 vUv;
 
 uniform sampler2D sceneDepth;
-uniform sampler2D blueNoise;
 uniform vec3 lightPos;
 uniform vec3 cameraPos;
 uniform vec2 resolution;
@@ -19,7 +18,6 @@ uniform samplerCube shadowMap;
 #else
 uniform sampler2D shadowMap;
 #endif
-uniform vec2 noiseResolution;
 uniform float texelSizeY;
 uniform float lightCameraNear;
 uniform float lightCameraFar;
@@ -232,8 +230,8 @@ void main() {
   }
   float illum = 0.0;
 
-  vec4 blueNoiseSample = texture2D(blueNoise, vUv * (resolution / noiseResolution));
-  float samplesFloat = round(raymarchSteps + ((raymarchSteps / 8.) + 2.) * blueNoiseSample.x);
+  float noise = fract(52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y));
+  float samplesFloat = round(raymarchSteps + ((raymarchSteps / 8.) + 2.) * noise);
   int samples = int(samplesFloat);
   for (int i = 0; i < samples; i++) {
     vec3 samplePos = mix(startPos, worldPos, float(i) / samplesFloat);

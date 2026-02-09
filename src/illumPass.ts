@@ -1,7 +1,6 @@
 import { Pass, type Resizable } from 'postprocessing';
 import * as THREE from 'three';
 
-import { getBlueNoiseTexture } from './bluenoise';
 import GodraysFragmentShader from './godrays.frag';
 import GodraysVertexShader from './godrays.vert';
 import type { GodraysPassParams } from './index';
@@ -33,8 +32,6 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       lightCameraFar: { value: 1000 },
       near: { value: 0.1 },
       far: { value: 1000.0 },
-      blueNoise: { value: null as THREE.Texture | null },
-      noiseResolution: { value: new THREE.Vector2(1, 1) },
       fNormals: { value: DIRECTIONS.map(() => new THREE.Vector3()) },
       fConstants: { value: DIRECTIONS.map(() => 0) },
       raymarchSteps: { value: 60 },
@@ -59,13 +56,6 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       defines: defines as any,
     });
 
-    getBlueNoiseTexture().then(blueNoiseTexture => {
-      uniforms.blueNoise.value = blueNoiseTexture;
-      uniforms.noiseResolution.value.set(
-        blueNoiseTexture.image.width,
-        blueNoiseTexture.image.height
-      );
-    });
   }
 }
 
