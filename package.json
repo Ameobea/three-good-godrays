@@ -50,7 +50,7 @@
     "copy-files": "cp -r demo/static/* public/demo",
     "build:js": "node esbuild.mjs",
     "build:js:min": "node esbuild.mjs -m",
-    "build:types": "tsc --declaration --emitDeclarationOnly && rm build/bluenoise.d.ts && mv build/index.d.ts build/three-good-godrays.d.ts",
+    "build:types": "tsc --declaration --emitDeclarationOnly && mv build/index.d.ts build/three-good-godrays.d.ts",
     "prepublishOnly": "run-s clean build:types build:js:min copy-files",
     "prettier": "prettier --write \"src/**/*.{ts,js,tsx}\" && prettier --write \"demo/**/*.{ts,js,tsx}\""
   },
