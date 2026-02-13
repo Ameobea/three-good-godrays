@@ -5,8 +5,6 @@ import GodraysFragmentShader from './godrays.frag';
 import GodraysVertexShader from './godrays.vert';
 import type { GodraysPassParams } from './index';
 
-export const GODRAYS_RESOLUTION_SCALE = 1 / 2;
-
 interface GodRaysDefines {
   IS_POINT_LIGHT?: string;
   IS_DIRECTIONAL_LIGHT?: string;
@@ -55,7 +53,6 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       vertexShader: GodraysVertexShader,
       defines: defines as any,
     });
-
   }
 }
 
@@ -113,10 +110,7 @@ export class GodraysIllumPass extends Pass implements Resizable {
   }
 
   override setSize(width: number, height: number): void {
-    this.material.uniforms.resolution.value.set(
-      Math.ceil(width * GODRAYS_RESOLUTION_SCALE),
-      Math.ceil(height * GODRAYS_RESOLUTION_SCALE)
-    );
+    this.material.uniforms.resolution.value.set(width, height);
     this.material.uniforms.near.value = this.props.camera.near;
     this.material.uniforms.far.value = this.props.camera.far;
   }
@@ -326,8 +320,6 @@ export class GodraysIllumPass extends Pass implements Resizable {
     uniforms.lightCameraFar.value = shadow?.camera.far ?? 1000;
     uniforms.near.value = camera.near;
     uniforms.far.value = camera.far;
-    uniforms.density.value = params.density;
-    uniforms.maxDensity.value = params.maxDensity;
     uniforms.distanceAttenuation.value = params.distanceAttenuation;
     uniforms.raymarchSteps.value = params.raymarchSteps;
   }

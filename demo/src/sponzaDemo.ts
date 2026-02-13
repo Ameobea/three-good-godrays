@@ -68,7 +68,7 @@ export class SponzaDemo extends BaseDemo {
     this.renderer.shadowMap.autoUpdate = true;
     this.renderer.shadowMap.needsUpdate = true;
 
-    this.params.density = 0.07;
+    this.params.density = 0.11;
     this.godraysPass = new GodraysPass(pointLight, this.camera as THREE.PerspectiveCamera, {
       ...this.params,
       gammaCorrection: false,
@@ -77,7 +77,7 @@ export class SponzaDemo extends BaseDemo {
     this.godraysPass.renderToScreen = false;
     this.composer.addPass(this.godraysPass);
 
-    this.onParamChange('density', 0.07);
+    this.onParamChange('density', 0.11);
 
     const smaaEffect = new SMAAEffect();
     const smaaPass = new EffectPass(this.camera, smaaEffect);

@@ -242,14 +242,17 @@ void main() {
   }
   float illum = 0.0;
 
+  float densityFactor = distance(startPos, worldPos) * density;
   float noise = fract(52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y));
   float samplesFloat = round(raymarchSteps + ((raymarchSteps / 8.) + 2.) * noise);
   int samples = int(samplesFloat);
+  float earlyOutThreshold = -log(1.0 - maxDensity) * samplesFloat;
   for (int i = 0; i < samples; i++) {
     vec3 samplePos = mix(startPos, worldPos, float(i) / samplesFloat);
     vec2 shadowInfo = inShadow(samplePos);
     float shadowAmount = 1.0 - shadowInfo.x;
-    illum += shadowAmount * (distance(startPos, worldPos) * density) * pow(1.0 - shadowInfo.y / lightCameraFar, distanceAttenuation);// * exp(-distanceAttenuation * shadowInfo.y);
+    illum += shadowAmount * densityFactor * pow(1.0 - shadowInfo.y / lightCameraFar, distanceAttenuation);
+    if (illum > earlyOutThreshold) break;
   }
   illum /= samplesFloat;
   gl_FragColor = vec4(vec3(clamp(1.0 - exp(-illum), 0.0, maxDensity)), linearDepth);

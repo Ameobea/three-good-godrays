@@ -35,7 +35,7 @@ export default class DirlightDemo extends BaseDemo {
     const lightPos = new THREE.Vector3();
     lightSphere.getWorldPosition(lightPos);
 
-    this.scene.add(new THREE.AmbientLight(0xcccccc, 5.4));
+    this.scene.add(new THREE.AmbientLight(0xcccccc, 2.4));
 
     const backdropDistance = 200;
     // Add backdrop walls `backdropDistance` units away from the origin

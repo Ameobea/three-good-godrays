@@ -9,11 +9,7 @@ import * as THREE from 'three';
 
 import { BilateralFilterPass, GODRAYS_BLUR_RESOLUTION_SCALE } from './bilateralFilter';
 import { GodraysCompositorMaterial, GodraysCompositorPass } from './compositorPass';
-import {
-  GODRAYS_RESOLUTION_SCALE,
-  GodraysIllumPass,
-  type GodraysIllumPassProps,
-} from './illumPass';
+import { GodraysIllumPass, type GodraysIllumPassProps } from './illumPass';
 
 export enum GodraysUpsampleQuality {
   /**
@@ -84,6 +80,18 @@ export interface GodraysPassParams {
   blur: boolean | Partial<GodraysBlurParams>;
   gammaCorrection: boolean;
   /**
+   * Resolution scale for the godrays render target, relative to the full screen resolution.
+   * Lower values improve performance at the cost of quality. The joint bilateral upsampling
+   * preserves sharp edges even at low resolutions.
+   *
+   * - `1.0` — Full resolution. Best quality, highest cost.
+   * - `0.5` — Half resolution (default). Good balance of quality and performance.
+   * - `0.25` — Quarter resolution. Fast, but may lose fine detail.
+   *
+   * Default: `0.5`
+   */
+  resolutionScale: number;
+  /**
    * Quality level for the depth-aware upsampling of the low-resolution godrays texture.
    *
    * Uses joint bilateral upsampling (JBU) to prevent godrays from bleeding across depth edges.
@@ -105,6 +113,7 @@ const defaultParams: GodraysPassParams = {
   raymarchSteps: 60,
   blur: true,
   gammaCorrection: true,
+  resolutionScale: 0.5,
   upsampleQuality: GodraysUpsampleQuality.HIGH,
 };
 
@@ -135,6 +144,8 @@ export class GodraysPass extends Pass implements Disposable {
   private depthTexture: THREE.Texture | null = null;
   private depthPacking: THREE.DepthPackingStrategies | null | undefined = null;
   private lastParams: GodraysPassParams;
+  private lastWidth = 1;
+  private lastHeight = 1;
 
   private godraysRenderTarget = new THREE.WebGLRenderTarget(1, 1, {
     minFilter: THREE.NearestFilter,
@@ -212,11 +223,16 @@ export class GodraysPass extends Pass implements Disposable {
    * Updates the parameters used for the godrays effect.  Will use default values for any parameters not specified.
    */
   public setParams(partialParams: Partial<GodraysPassParams>): void {
+    const oldScale = this.lastParams.resolutionScale;
     const params = populateParams(partialParams);
     this.lastParams = params;
     this.illumPass.updateUniforms(this.props, params);
     this.compositorPass.updateUniforms(params);
     this.compositorPass.updateUpsampleQuality(params.upsampleQuality);
+
+    if (params.resolutionScale !== oldScale) {
+      this.setSize(this.lastWidth, this.lastHeight);
+    }
 
     this.enableBlurPass = !!params.blur;
     if (params.blur && this.blurPass) {
@@ -293,11 +309,14 @@ export class GodraysPass extends Pass implements Disposable {
   }
 
   override setSize(width: number, height: number): void {
-    const godraysWidth = Math.ceil(width * GODRAYS_RESOLUTION_SCALE);
-    const godraysHeight = Math.ceil(height * GODRAYS_RESOLUTION_SCALE);
+    this.lastWidth = width;
+    this.lastHeight = height;
+    const scale = this.lastParams.resolutionScale;
+    const godraysWidth = Math.ceil(width * scale);
+    const godraysHeight = Math.ceil(height * scale);
 
     this.godraysRenderTarget.setSize(godraysWidth, godraysHeight);
-    this.illumPass.setSize(width, height);
+    this.illumPass.setSize(godraysWidth, godraysHeight);
     this.compositorPass.setSize(width, height);
     this.compositorPass.setGodraysResolution(godraysWidth, godraysHeight);
     this.blurPass?.setSize(godraysWidth, godraysHeight);

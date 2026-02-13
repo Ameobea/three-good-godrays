@@ -20,8 +20,8 @@ export class BaseDemo extends Demo {
   public controls: OrbitControls;
   public godraysPass: GodraysPass;
   public params: GodraysPassParamsState = {
-    density: 0.006,
-    maxDensity: 2 / 3,
+    density: 0.015,
+    maxDensity: 1,
     distanceAttenuation: 2,
     color: new THREE.Color(0xffffff).getHex(),
     raymarchSteps: 60,
@@ -29,6 +29,7 @@ export class BaseDemo extends Demo {
     blurVariance: 0.1,
     blurKernelSize: KernelSize.SMALL,
     gammaCorrection: false,
+    resolutionScale: 0.5,
     upsampleQuality: GodraysUpsampleQuality.HIGH,
   };
 
@@ -66,6 +67,7 @@ export class BaseDemo extends Demo {
         HIGH: GodraysUpsampleQuality.HIGH,
       })
       .onChange(mkOnChange('upsampleQuality'));
+    menu.add(this.params, 'resolutionScale', 0.1, 1, 0.05).onChange(mkOnChange('resolutionScale'));
     menu.add(this.params, 'raymarchSteps', 1, 200, 1).onChange(mkOnChange('raymarchSteps'));
     menu.add(this.params, 'enableBlur', true).onChange(mkOnChange('enableBlur'));
     menu.add(this.params, 'blurVariance', 0.001, 0.5, 0.001).onChange(mkOnChange('blurVariance'));
