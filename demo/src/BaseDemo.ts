@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { Demo } from 'three-demo';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-import { GodraysPass, GodraysPassParams } from '../../src/index';
+import { GodraysPass, GodraysPassParams, GodraysUpsampleQuality } from '../../src/index';
 
 THREE.ColorManagement.enabled = true;
 
@@ -13,6 +13,7 @@ interface GodraysPassParamsState extends Omit<GodraysPassParams, 'color' | 'blur
   enableBlur: boolean;
   blurVariance: number;
   blurKernelSize: KernelSize;
+  upsampleQuality: GodraysUpsampleQuality;
 }
 
 export class BaseDemo extends Demo {
@@ -23,13 +24,12 @@ export class BaseDemo extends Demo {
     maxDensity: 2 / 3,
     distanceAttenuation: 2,
     color: new THREE.Color(0xffffff).getHex(),
-    edgeStrength: 2,
-    edgeRadius: 2,
     raymarchSteps: 60,
     enableBlur: true,
     blurVariance: 0.1,
     blurKernelSize: KernelSize.SMALL,
     gammaCorrection: false,
+    upsampleQuality: GodraysUpsampleQuality.HIGH,
   };
 
   public composer: EffectComposer;
@@ -60,8 +60,12 @@ export class BaseDemo extends Demo {
     menu.add(this.params, 'maxDensity', 0, 1).onChange(mkOnChange('maxDensity'));
     menu.add(this.params, 'distanceAttenuation', 0, 5).onChange(mkOnChange('distanceAttenuation'));
     menu.addColor(this.params, 'color').onChange(mkOnChange('color'));
-    menu.add(this.params, 'edgeStrength', 0, 10, 1).onChange(mkOnChange('edgeStrength'));
-    menu.add(this.params, 'edgeRadius', 0, 10, 1).onChange(mkOnChange('edgeRadius'));
+    menu
+      .add(this.params, 'upsampleQuality', {
+        LOW: GodraysUpsampleQuality.LOW,
+        HIGH: GodraysUpsampleQuality.HIGH,
+      })
+      .onChange(mkOnChange('upsampleQuality'));
     menu.add(this.params, 'raymarchSteps', 1, 200, 1).onChange(mkOnChange('raymarchSteps'));
     menu.add(this.params, 'enableBlur', true).onChange(mkOnChange('enableBlur'));
     menu.add(this.params, 'blurVariance', 0.001, 0.5, 0.001).onChange(mkOnChange('blurVariance'));

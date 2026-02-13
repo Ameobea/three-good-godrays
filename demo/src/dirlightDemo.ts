@@ -35,7 +35,7 @@ export default class DirlightDemo extends BaseDemo {
     const lightPos = new THREE.Vector3();
     lightSphere.getWorldPosition(lightPos);
 
-    this.scene.add(new THREE.AmbientLight(0xcccccc, 0.4));
+    this.scene.add(new THREE.AmbientLight(0xcccccc, 5.4));
 
     const backdropDistance = 200;
     // Add backdrop walls `backdropDistance` units away from the origin
@@ -65,6 +65,8 @@ export default class DirlightDemo extends BaseDemo {
         obj.receiveShadow = true;
       }
     });
+
+    this.scene.background = new THREE.Color(0x000000);
 
     lightSphere.castShadow = false;
     lightSphere.receiveShadow = false;
@@ -105,10 +107,10 @@ export default class DirlightDemo extends BaseDemo {
     this.scene.add(dirLight.target);
     this.scene.add(dirLight);
 
-    const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 5);
-    this.scene.add(dirLightHelper);
-    const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
-    this.scene.add(dirLightCameraHelper);
+    // const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 5);
+    // this.scene.add(dirLightHelper);
+    // const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
+    // this.scene.add(dirLightCameraHelper);
 
     this.godraysPass = new GodraysPass(dirLight, this.camera as THREE.PerspectiveCamera, {
       ...this.params,

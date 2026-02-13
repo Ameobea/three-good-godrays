@@ -33,6 +33,17 @@ uniform mat4 premultipliedLightCameraMatrix;
 
 #include <packing>
 
+float linearize_depth(float depth, float zNear, float zFar) {
+  #if defined( USE_LOGDEPTHBUF )
+  float d = pow(2.0, depth * log2(zFar + 1.0)) - 1.0;
+  float a = zFar / (zFar - zNear);
+  float b = zFar * zNear / (zNear - zFar);
+  depth = a + b / d;
+  #endif
+
+  return zNear * zFar / (zFar + depth * (zNear - zFar));
+}
+
 vec3 WorldPosFromDepth(float depth, vec2 coord) {
   #if defined( USE_LOGDEPTHBUF )
   float d = pow(2.0, depth * log2(far + 1.0)) - 1.0;
@@ -168,6 +179,7 @@ float intersectRayPlane(vec3 rayOrigin, vec3 rayDirection, vec3 planeNormal, flo
 
 void main() {
   float depth = texture2D(sceneDepth, vUv).x;
+  float linearDepth = linearize_depth(depth, near, far);
 
   vec3 worldPos = WorldPosFromDepth(depth, vUv);
   float inBoxDist = -10000.0;
@@ -197,7 +209,7 @@ void main() {
       }
     }
     if (minT == 10000.0) {
-      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+      gl_FragColor = vec4(0.0, 0.0, 0.0, linearDepth);
       return;
     }
     startPos = cameraPos + (minT + 0.001) * direction;
@@ -240,5 +252,5 @@ void main() {
     illum += shadowAmount * (distance(startPos, worldPos) * density) * pow(1.0 - shadowInfo.y / lightCameraFar, distanceAttenuation);// * exp(-distanceAttenuation * shadowInfo.y);
   }
   illum /= samplesFloat;
-  gl_FragColor = vec4(vec3(clamp(1.0 - exp(-illum), 0.0, maxDensity)), depth);
+  gl_FragColor = vec4(vec3(clamp(1.0 - exp(-illum), 0.0, maxDensity)), linearDepth);
 }

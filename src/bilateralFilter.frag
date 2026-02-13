@@ -38,25 +38,22 @@ float normpdf(in float x, in float sigma) {
 	return 0.39894 * exp(-0.5 * x * x / (sigma * sigma)) / sigma;
 }
 
-float normpdf3(in vec3 v, in float sigma) {
-	return 0.39894 * exp(-0.5 * dot(v, v) / (sigma * sigma)) / sigma;
-}
-
 void main() {
-  vec3 c = texture(tInput, vUv).rgb;
   ivec2 fragCoord = ivec2(vUv * resolution);
-  vec3 finalColor = vec3(0.);
+  vec4 centerSample = texelFetch(tInput, fragCoord, 0);
+  float c = centerSample.r;
+  float finalValue = 0.;
 
   float bZ = 1.0 / normpdf(0.0, bSigma);
   float totalFactor = 0.;
   for (int i = -KSIZE; i <= KSIZE; ++i) {
     for (int j = -KSIZE; j <= KSIZE; ++j) {
-      vec3 cc = texelFetch(tInput, fragCoord + ivec2(i, j), 0).rgb;
-      float factor = normpdf3(cc - c, bSigma) * bZ * kernel[KSIZE + j] * kernel[KSIZE + i];
+      float cc = texelFetch(tInput, fragCoord + ivec2(i, j), 0).r;
+      float factor = normpdf(cc - c, bSigma) * bZ * kernel[KSIZE + j] * kernel[KSIZE + i];
       totalFactor += factor;
-      finalColor += factor * cc;
+      finalValue += factor * cc;
     }
   }
 
-  gl_FragColor = vec4(finalColor / totalFactor, 1.);
+  gl_FragColor = vec4(vec3(finalValue / totalFactor), centerSample.a);
 }

@@ -15,6 +15,17 @@ import {
   type GodraysIllumPassProps,
 } from './illumPass';
 
+export enum GodraysUpsampleQuality {
+  /**
+   * 2x2 neighborhood (4 texture taps). Fast with good edge preservation.
+   */
+  LOW = 0,
+  /**
+   * 4x4 neighborhood (16 texture taps). Better quality, especially for diagonal edges.
+   */
+  HIGH = 1,
+}
+
 export interface GodraysBlurParams {
   /**
    * The sigma factor used by the bilateral filter for the blur.  Higher values result in more blur, but
@@ -46,17 +57,6 @@ export interface GodraysPassParams {
    */
   maxDensity: number;
   /**
-   * Default: 2
-   */
-  edgeStrength: number;
-  /**
-   * Edge radius used for depth-aware upsampling of the godrays.  Higher values can yield better edge quality at the cost of performance, as
-   * each level higher of this requires two additional texture samples.
-   *
-   * Default: 2
-   */
-  edgeRadius: number;
-  /**
    * Higher values decrease the accumulation of godrays the further away they are from the light source.
    *
    * Default: 2
@@ -79,22 +79,33 @@ export interface GodraysPassParams {
    *
    * It costs a bit of extra performance, but can allow for a lower number of raymarching steps to be used with similar quality.
    *
-   * Default: false
+   * Default: true
    */
   blur: boolean | Partial<GodraysBlurParams>;
   gammaCorrection: boolean;
+  /**
+   * Quality level for the depth-aware upsampling of the low-resolution godrays texture.
+   *
+   * Uses joint bilateral upsampling (JBU) to prevent godrays from bleeding across depth edges.
+   * Higher quality uses a larger sample neighborhood for smoother results, especially along diagonal edges.
+   *
+   * - `GodraysUpsampleQuality.LOW` — 2x2 neighborhood (4 texture taps). Fast with good edge preservation.
+   * - `GodraysUpsampleQuality.HIGH` — 4x4 neighborhood (16 texture taps). Better quality.
+   *
+   * Default: `GodraysUpsampleQuality.HIGH`
+   */
+  upsampleQuality: GodraysUpsampleQuality;
 }
 
 const defaultParams: GodraysPassParams = {
   density: 1 / 128,
   maxDensity: 0.5,
-  edgeStrength: 2,
-  edgeRadius: 2,
   distanceAttenuation: 2,
   color: new THREE.Color(0xffffff),
   raymarchSteps: 60,
   blur: true,
   gammaCorrection: true,
+  upsampleQuality: GodraysUpsampleQuality.HIGH,
 };
 
 const populateParams = (partialParams: Partial<GodraysPassParams>): GodraysPassParams => {
@@ -126,8 +137,8 @@ export class GodraysPass extends Pass implements Disposable {
   private lastParams: GodraysPassParams;
 
   private godraysRenderTarget = new THREE.WebGLRenderTarget(1, 1, {
-    minFilter: THREE.LinearFilter,
-    magFilter: THREE.LinearFilter,
+    minFilter: THREE.NearestFilter,
+    magFilter: THREE.NearestFilter,
     format: THREE.RGBAFormat,
     type: THREE.HalfFloatType,
     generateMipmaps: false,
@@ -184,11 +195,10 @@ export class GodraysPass extends Pass implements Disposable {
 
     this.compositorPass = new GodraysCompositorPass({
       godrays: this.godraysRenderTarget.texture,
-      edgeStrength: params.edgeStrength,
-      edgeRadius: params.edgeRadius,
       color: params.color,
       camera,
       gammaCorrection: params.gammaCorrection,
+      upsampleQuality: params.upsampleQuality,
     });
     this.compositorPass.needsDepthTexture = true;
 
@@ -206,6 +216,7 @@ export class GodraysPass extends Pass implements Disposable {
     this.lastParams = params;
     this.illumPass.updateUniforms(this.props, params);
     this.compositorPass.updateUniforms(params);
+    this.compositorPass.updateUpsampleQuality(params.upsampleQuality);
 
     this.enableBlurPass = !!params.blur;
     if (params.blur && this.blurPass) {
@@ -236,8 +247,8 @@ export class GodraysPass extends Pass implements Disposable {
         Math.ceil(this.godraysRenderTarget.width * GODRAYS_BLUR_RESOLUTION_SCALE),
         Math.ceil(this.godraysRenderTarget.height * GODRAYS_BLUR_RESOLUTION_SCALE),
         {
-          minFilter: THREE.LinearFilter,
-          magFilter: THREE.LinearFilter,
+          minFilter: THREE.NearestFilter,
+          magFilter: THREE.NearestFilter,
           format: THREE.RGBAFormat,
           type: THREE.HalfFloatType,
           generateMipmaps: false,
@@ -282,19 +293,17 @@ export class GodraysPass extends Pass implements Disposable {
   }
 
   override setSize(width: number, height: number): void {
-    this.godraysRenderTarget.setSize(
-      Math.ceil(width * GODRAYS_RESOLUTION_SCALE),
-      Math.ceil(height * GODRAYS_RESOLUTION_SCALE)
-    );
+    const godraysWidth = Math.ceil(width * GODRAYS_RESOLUTION_SCALE);
+    const godraysHeight = Math.ceil(height * GODRAYS_RESOLUTION_SCALE);
+
+    this.godraysRenderTarget.setSize(godraysWidth, godraysHeight);
     this.illumPass.setSize(width, height);
     this.compositorPass.setSize(width, height);
-    this.blurPass?.setSize(
-      Math.ceil(width * GODRAYS_RESOLUTION_SCALE),
-      Math.ceil(height * GODRAYS_RESOLUTION_SCALE)
-    );
+    this.compositorPass.setGodraysResolution(godraysWidth, godraysHeight);
+    this.blurPass?.setSize(godraysWidth, godraysHeight);
     this.blurRenderTarget?.setSize(
-      Math.ceil(width * GODRAYS_RESOLUTION_SCALE * GODRAYS_BLUR_RESOLUTION_SCALE),
-      Math.ceil(height * GODRAYS_RESOLUTION_SCALE * GODRAYS_BLUR_RESOLUTION_SCALE)
+      Math.ceil(godraysWidth * GODRAYS_BLUR_RESOLUTION_SCALE),
+      Math.ceil(godraysHeight * GODRAYS_BLUR_RESOLUTION_SCALE)
     );
   }
 
@@ -302,7 +311,7 @@ export class GodraysPass extends Pass implements Disposable {
     this.godraysRenderTarget.dispose();
     this.illumPass.dispose();
     this.compositorPass.dispose();
-    this.blurPass?.dispose;
+    this.blurPass?.dispose();
     super.dispose();
   }
 }

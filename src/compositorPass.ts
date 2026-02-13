@@ -4,38 +4,38 @@ import type { PerspectiveCamera } from 'three';
 
 import GodraysCompositorFragmentShader from './compositor.frag';
 import GodraysCompositorVertexShader from './compositor.vert';
-import type { GodraysPassParams } from './index';
+import type { GodraysPassParams, GodraysUpsampleQuality } from './index';
 
 interface GodraysCompositorMaterialProps {
   godrays: THREE.Texture;
-  edgeStrength: number;
-  edgeRadius: number;
   color: THREE.Color;
   camera: THREE.PerspectiveCamera;
   gammaCorrection: boolean;
+  upsampleQuality: GodraysUpsampleQuality;
 }
 
 export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements Resizable {
   constructor({
     godrays,
-    edgeStrength,
-    edgeRadius,
     color,
     camera,
     gammaCorrection,
+    upsampleQuality,
   }: GodraysCompositorMaterialProps) {
     const uniforms = {
       godrays: { value: godrays },
       sceneDiffuse: { value: null },
       sceneDepth: { value: null },
-      edgeStrength: { value: edgeStrength },
-      edgeRadius: { value: edgeRadius },
       near: { value: 0.1 },
       far: { value: 1000.0 },
       color: { value: color },
       resolution: { value: new THREE.Vector2(1, 1) },
+      godraysResolution: { value: new THREE.Vector2(1, 1) },
       gammaCorrection: { value: 1 },
     };
+
+    const jbuExtent = upsampleQuality >= 1 ? 1 : 0;
+    const jbuSpatialSigma = jbuExtent === 1 ? 1.0 : 0.5;
 
     super({
       name: 'GodraysCompositorMaterial',
@@ -44,21 +44,22 @@ export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements R
       depthTest: false,
       fragmentShader: GodraysCompositorFragmentShader,
       vertexShader: GodraysCompositorVertexShader,
+      defines: {
+        JBU_EXTENT: String(jbuExtent),
+        JBU_SPATIAL_SIGMA: jbuSpatialSigma.toFixed(1),
+        JBU_DEPTH_SIGMA: '0.02',
+      },
     });
 
-    this.updateUniforms(edgeStrength, edgeRadius, color, gammaCorrection, camera.near, camera.far);
+    this.updateUniforms(color, gammaCorrection, camera.near, camera.far);
   }
 
   public updateUniforms(
-    edgeStrength: number,
-    edgeRadius: number,
     color: THREE.Color,
     gammaCorrection: boolean,
     near: number,
     far: number
   ): void {
-    this.uniforms.edgeStrength.value = edgeStrength;
-    this.uniforms.edgeRadius.value = edgeRadius;
     this.uniforms.color.value = color;
     this.uniforms.near.value = near;
     this.uniforms.far.value = far;
@@ -67,6 +68,10 @@ export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements R
 
   setSize(width: number, height: number): void {
     this.uniforms.resolution.value.set(width, height);
+  }
+
+  setGodraysResolution(width: number, height: number): void {
+    this.uniforms.godraysResolution.value.set(width, height);
   }
 }
 
@@ -85,13 +90,25 @@ export class GodraysCompositorPass extends Pass {
 
   public updateUniforms(params: GodraysPassParams): void {
     (this.fullscreenMaterial as GodraysCompositorMaterial).updateUniforms(
-      params.edgeStrength,
-      params.edgeRadius,
       params.color,
       params.gammaCorrection,
       this.sceneCamera.near,
       this.sceneCamera.far
     );
+  }
+
+  public updateUpsampleQuality(quality: GodraysUpsampleQuality): void {
+    const mat = this.fullscreenMaterial as GodraysCompositorMaterial;
+    const jbuExtent = quality >= 1 ? 1 : 0;
+    const jbuSpatialSigma = jbuExtent === 1 ? 1.0 : 0.5;
+    const needsUpdate =
+      mat.defines.JBU_EXTENT !== String(jbuExtent);
+
+    if (needsUpdate) {
+      mat.defines.JBU_EXTENT = String(jbuExtent);
+      mat.defines.JBU_SPATIAL_SIGMA = jbuSpatialSigma.toFixed(1);
+      mat.needsUpdate = true;
+    }
   }
 
   override render(
@@ -160,5 +177,9 @@ export class GodraysCompositorPass extends Pass {
 
   override setSize(width: number, height: number): void {
     (this.fullscreenMaterial as GodraysCompositorMaterial).setSize(width, height);
+  }
+
+  public setGodraysResolution(width: number, height: number): void {
+    (this.fullscreenMaterial as GodraysCompositorMaterial).setGodraysResolution(width, height);
   }
 }

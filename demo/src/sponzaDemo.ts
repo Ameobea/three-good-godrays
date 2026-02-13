@@ -27,7 +27,7 @@ export class SponzaDemo extends BaseDemo {
     this.controls.target.set(0, 0, 0);
     this.controls.update();
 
-    const ambientLight = new THREE.AmbientLight(0xcccccc, 0.1);
+    const ambientLight = new THREE.AmbientLight(0xcccccc, 1.1);
     this.scene.add(ambientLight);
 
     const lightPos = new THREE.Vector3(0, 5, 0);

@@ -101,8 +101,6 @@ async function init() {
     const params = {
         density: 1 / 128,
         maxDensity: 0.5,
-        edgeStrength: 2,
-        edgeRadius: 2,
         distanceAttenuation: 2,
         color: new THREE.Color( 0xf6287d ),
         raymarchSteps: 60,
