@@ -109,11 +109,7 @@ export default class PointlightDemo extends BaseDemo {
     pointLight.position.copy(lightPos);
     this.scene.add(pointLight);
 
-    this.godraysPass = new GodraysPass(pointLight, this.camera as THREE.PerspectiveCamera, {
-      ...this.params,
-      gammaCorrection: false,
-      color: new THREE.Color(this.params.color),
-    });
+    this.godraysPass = new GodraysPass(pointLight, this.camera as THREE.PerspectiveCamera, this.buildPassParams());
     this.godraysPass.renderToScreen = false;
     this.composer.addPass(this.godraysPass);
 

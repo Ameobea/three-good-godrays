@@ -41,6 +41,11 @@ float normpdf(in float x, in float sigma) {
 void main() {
   ivec2 fragCoord = ivec2(vUv * resolution);
   vec4 centerSample = texelFetch(tInput, fragCoord, 0);
+
+  #if defined(DEBUG_STEPS)
+  // Pass through heatmap colors unmodified — blurring would distort the visualization
+  gl_FragColor = centerSample;
+  #else
   float c = centerSample.r;
   float finalValue = 0.;
 
@@ -56,4 +61,5 @@ void main() {
   }
 
   gl_FragColor = vec4(vec3(finalValue / totalFactor), centerSample.a);
+  #endif
 }

@@ -82,11 +82,12 @@ export default class DirlightDemo extends BaseDemo {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.1;
 
-    this.camera.position.set(-140, 110, -200);
+    this.camera.position.set(-140, 140, -200);
     this.controls.target.set(0, 0, 0);
     this.controls.update();
 
     const renderPass = new RenderPass(this.scene, this.camera);
+    renderPass.renderToScreen = false;
     this.composer.addPass(renderPass);
 
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
@@ -112,16 +113,19 @@ export default class DirlightDemo extends BaseDemo {
     // const dirLightCameraHelper = new THREE.CameraHelper(dirLight.shadow.camera);
     // this.scene.add(dirLightCameraHelper);
 
-    this.godraysPass = new GodraysPass(dirLight, this.camera as THREE.PerspectiveCamera, {
-      ...this.params,
-      gammaCorrection: false,
-      color: new THREE.Color(this.params.color),
-    });
+    this.params.useAdaptiveSteps = true;
+    this.godraysPass = new GodraysPass(
+      dirLight,
+      this.camera as THREE.PerspectiveCamera,
+      this.buildPassParams()
+    );
+    this.godraysPass.renderToScreen = false;
     this.composer.addPass(this.godraysPass);
 
     const smaaEffect = new SMAAEffect();
     const smaaPass = new EffectPass(this.camera, smaaEffect);
     smaaPass.encodeOutput = false;
+    smaaPass.renderToScreen = true;
     this.composer.addPass(smaaPass);
   }
 

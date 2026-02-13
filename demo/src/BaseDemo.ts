@@ -8,12 +8,18 @@ import { GodraysPass, GodraysPassParams, GodraysUpsampleQuality } from '../../sr
 
 THREE.ColorManagement.enabled = true;
 
-interface GodraysPassParamsState extends Omit<GodraysPassParams, 'color' | 'blur'> {
+interface GodraysPassParamsState
+  extends Omit<GodraysPassParams, 'color' | 'blur' | 'adaptiveSteps' | 'debugSteps'> {
   color: number;
   enableBlur: boolean;
   blurVariance: number;
   blurKernelSize: KernelSize;
   upsampleQuality: GodraysUpsampleQuality;
+  debugSteps: boolean;
+  useAdaptiveSteps: boolean;
+  stepSize: number;
+  minSteps: number;
+  maxSteps: number;
 }
 
 export class BaseDemo extends Demo {
@@ -26,11 +32,16 @@ export class BaseDemo extends Demo {
     color: new THREE.Color(0xffffff).getHex(),
     raymarchSteps: 60,
     enableBlur: true,
-    blurVariance: 0.1,
-    blurKernelSize: KernelSize.SMALL,
+    blurVariance: 0.125,
+    blurKernelSize: KernelSize.MEDIUM,
     gammaCorrection: false,
     resolutionScale: 0.5,
     upsampleQuality: GodraysUpsampleQuality.HIGH,
+    useAdaptiveSteps: false,
+    stepSize: 3.5,
+    minSteps: 8,
+    maxSteps: 125,
+    debugSteps: false,
   };
 
   public composer: EffectComposer;
@@ -40,16 +51,35 @@ export class BaseDemo extends Demo {
     this.composer = composer;
   }
 
-  public onParamChange = (key: string, value: any) => {
-    this.params[key] = value;
-
-    this.godraysPass.setParams({
-      ...this.params,
+  public buildPassParams(): Partial<GodraysPassParams> {
+    const passParams: Partial<GodraysPassParams> = {
+      density: this.params.density,
+      maxDensity: this.params.maxDensity,
+      distanceAttenuation: this.params.distanceAttenuation,
       color: new THREE.Color(this.params.color),
       blur: this.params.enableBlur
         ? { variance: this.params.blurVariance, kernelSize: this.params.blurKernelSize }
         : false,
-    });
+      gammaCorrection: this.params.gammaCorrection,
+      resolutionScale: this.params.resolutionScale,
+      upsampleQuality: this.params.upsampleQuality,
+      debugSteps: this.params.debugSteps,
+    };
+    if (this.params.useAdaptiveSteps) {
+      passParams.adaptiveSteps = {
+        stepSize: this.params.stepSize,
+        minSteps: this.params.minSteps,
+        maxSteps: this.params.maxSteps,
+      };
+    } else {
+      passParams.raymarchSteps = this.params.raymarchSteps;
+    }
+    return passParams;
+  }
+
+  public onParamChange = (key: string, value: any) => {
+    this.params[key] = value;
+    this.godraysPass.setParams(this.buildPassParams());
   };
 
   registerOptions(menu: GUI) {
@@ -69,6 +99,11 @@ export class BaseDemo extends Demo {
       .onChange(mkOnChange('upsampleQuality'));
     menu.add(this.params, 'resolutionScale', 0.1, 1, 0.05).onChange(mkOnChange('resolutionScale'));
     menu.add(this.params, 'raymarchSteps', 1, 200, 1).onChange(mkOnChange('raymarchSteps'));
+    menu.add(this.params, 'debugSteps').onChange(mkOnChange('debugSteps'));
+    menu.add(this.params, 'useAdaptiveSteps').onChange(mkOnChange('useAdaptiveSteps'));
+    menu.add(this.params, 'stepSize', 0.1, 50, 0.1).onChange(mkOnChange('stepSize'));
+    menu.add(this.params, 'minSteps', 1, 50, 1).onChange(mkOnChange('minSteps'));
+    menu.add(this.params, 'maxSteps', 10, 300, 1).onChange(mkOnChange('maxSteps'));
     menu.add(this.params, 'enableBlur', true).onChange(mkOnChange('enableBlur'));
     menu.add(this.params, 'blurVariance', 0.001, 0.5, 0.001).onChange(mkOnChange('blurVariance'));
     menu

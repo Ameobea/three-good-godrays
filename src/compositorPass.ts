@@ -97,6 +97,18 @@ export class GodraysCompositorPass extends Pass {
     );
   }
 
+  public updateDebugSteps(enabled: boolean): void {
+    const mat = this.fullscreenMaterial as GodraysCompositorMaterial;
+    const has = mat.defines.DEBUG_STEPS !== undefined;
+    if (enabled && !has) {
+      mat.defines.DEBUG_STEPS = '';
+      mat.needsUpdate = true;
+    } else if (!enabled && has) {
+      delete mat.defines.DEBUG_STEPS;
+      mat.needsUpdate = true;
+    }
+  }
+
   public updateUpsampleQuality(quality: GodraysUpsampleQuality): void {
     const mat = this.fullscreenMaterial as GodraysCompositorMaterial;
     const jbuExtent = quality >= 1 ? 1 : 0;

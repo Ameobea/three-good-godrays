@@ -9,6 +9,7 @@ interface GodRaysDefines {
   IS_POINT_LIGHT?: string;
   IS_DIRECTIONAL_LIGHT?: string;
   USE_UNPACKED_DEPTH?: string;
+  DEBUG_STEPS?: string;
 }
 
 class GodraysMaterial extends THREE.ShaderMaterial {
@@ -33,6 +34,10 @@ class GodraysMaterial extends THREE.ShaderMaterial {
       fNormals: { value: DIRECTIONS.map(() => new THREE.Vector3()) },
       fConstants: { value: DIRECTIONS.map(() => 0) },
       raymarchSteps: { value: 60 },
+      raymarchStepSize: { value: 0.0 },
+      minSteps: { value: 8.0 },
+      maxSteps: { value: 125.0 },
+      shadowTexelWorldSize: { value: 0.0 },
     };
 
     const defines: GodRaysDefines = {};
@@ -66,6 +71,8 @@ const DIRECTIONS = [
 ];
 const PLANES = DIRECTIONS.map(() => new THREE.Plane());
 const SCRATCH_VECTOR = new THREE.Vector3();
+const SCRATCH_VECTOR2 = new THREE.Vector3();
+const SCRATCH_VECTOR3 = new THREE.Vector3();
 const SCRATCH_FRUSTUM = new THREE.Frustum();
 const SCRATCH_MAT4 = new THREE.Matrix4();
 
@@ -243,6 +250,17 @@ export class GodraysIllumPass extends Pass implements Resizable {
     }
   }
 
+  private computeEffectiveMaxDist(lightCameraFar: number, distanceAttenuation: number): number {
+    if (distanceAttenuation <= 0) {
+      return lightCameraFar;
+    }
+    const epsilon = 0.005;
+    return Math.min(
+      lightCameraFar,
+      lightCameraFar * (1.0 - Math.pow(epsilon, 1.0 / distanceAttenuation))
+    );
+  }
+
   private updateLightParams({ light }: GodraysIllumPassProps) {
     light.getWorldPosition(this.lightWorldPos);
 
@@ -253,17 +271,25 @@ export class GodraysIllumPass extends Pass implements Resizable {
     );
 
     if (light instanceof THREE.PointLight || (light as any).isPointLight) {
+      const effectiveFar = this.computeEffectiveMaxDist(
+        uniforms.lightCameraFar.value,
+        uniforms.distanceAttenuation.value
+      );
+
       for (let i = 0; i < DIRECTIONS.length; i += 1) {
         const direction = DIRECTIONS[i];
         const plane = PLANES[i];
 
         SCRATCH_VECTOR.copy(light.position);
-        SCRATCH_VECTOR.addScaledVector(direction, uniforms.lightCameraFar.value);
+        SCRATCH_VECTOR.addScaledVector(direction, effectiveFar);
         plane.setFromNormalAndCoplanarPoint(direction, SCRATCH_VECTOR);
 
         uniforms.fNormals.value[i].copy(plane.normal);
         uniforms.fConstants.value[i] = plane.constant;
       }
+
+      uniforms.shadowTexelWorldSize.value =
+        (2.0 * uniforms.lightCameraFar.value) / light.shadow.mapSize.x;
     } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
       SCRATCH_MAT4.multiplyMatrices(
         light.shadow.camera.projectionMatrix,
@@ -271,11 +297,30 @@ export class GodraysIllumPass extends Pass implements Resizable {
       );
       SCRATCH_FRUSTUM.setFromProjectionMatrix(SCRATCH_MAT4);
 
+      const effectiveFar = this.computeEffectiveMaxDist(
+        uniforms.lightCameraFar.value,
+        uniforms.distanceAttenuation.value
+      );
+      if (effectiveFar < uniforms.lightCameraFar.value) {
+        // Get shadow camera world position and forward direction
+        light.shadow.camera.getWorldDirection(SCRATCH_VECTOR2); // forward = into scene
+        light.shadow.camera.getWorldPosition(SCRATCH_VECTOR3);
+        // Coplanar point on new far plane
+        SCRATCH_VECTOR.copy(SCRATCH_VECTOR3).addScaledVector(SCRATCH_VECTOR2, effectiveFar);
+        // Inward normal = -forward (pointing back toward camera)
+        SCRATCH_VECTOR2.negate();
+        SCRATCH_FRUSTUM.planes[4].setFromNormalAndCoplanarPoint(SCRATCH_VECTOR2, SCRATCH_VECTOR);
+      }
+
       for (let planeIx = 0; planeIx < 6; planeIx += 1) {
         const plane = SCRATCH_FRUSTUM.planes[planeIx];
         uniforms.fNormals.value[planeIx].copy(plane.normal).multiplyScalar(-1);
         uniforms.fConstants.value[planeIx] = plane.constant * -1;
       }
+
+      const shadowCam = light.shadow.camera as THREE.OrthographicCamera;
+      uniforms.shadowTexelWorldSize.value =
+        (shadowCam.right - shadowCam.left) / light.shadow.mapSize.x;
     }
   }
 
@@ -322,5 +367,23 @@ export class GodraysIllumPass extends Pass implements Resizable {
     uniforms.far.value = camera.far;
     uniforms.distanceAttenuation.value = params.distanceAttenuation;
     uniforms.raymarchSteps.value = params.raymarchSteps;
+
+    if (params.adaptiveSteps) {
+      uniforms.raymarchStepSize.value = params.adaptiveSteps.stepSize;
+      uniforms.minSteps.value = params.adaptiveSteps.minSteps ?? 8.0;
+      uniforms.maxSteps.value = params.adaptiveSteps.maxSteps ?? 125.0;
+    } else {
+      uniforms.raymarchStepSize.value = 0.0;
+    }
+
+    const wantsDebug = !!params.debugSteps;
+    const hasDebug = this.material.defines.DEBUG_STEPS !== undefined;
+    if (wantsDebug && !hasDebug) {
+      this.material.defines.DEBUG_STEPS = '';
+      this.material.needsUpdate = true;
+    } else if (!wantsDebug && hasDebug) {
+      delete this.material.defines.DEBUG_STEPS;
+      this.material.needsUpdate = true;
+    }
   }
 }

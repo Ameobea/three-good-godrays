@@ -29,6 +29,10 @@ uniform float distanceAttenuation;
 uniform vec3[6] fNormals;
 uniform float[6] fConstants;
 uniform float raymarchSteps;
+uniform float raymarchStepSize;
+uniform float minSteps;
+uniform float maxSteps;
+uniform float shadowTexelWorldSize;
 uniform mat4 premultipliedLightCameraMatrix;
 
 #include <packing>
@@ -164,96 +168,85 @@ float sdPlane(vec3 p, vec3 n, float h) {
   return dot(p, n) + h;
 }
 
-/**
- * Calculates the intersection of a ray defined by rayOrigin and rayDirection
- * with a plane defined by normal planeNormal and distance planeDistance
- *
- * Returns the distance from the ray origin to the intersection point.
- *
- * The return value will be negative if the ray does not intersect the plane.
- */
-float intersectRayPlane(vec3 rayOrigin, vec3 rayDirection, vec3 planeNormal, float planeDistance) {
-  float denom = dot(planeNormal, rayDirection);
-  return -(sdPlane(rayOrigin, planeNormal, planeDistance) / denom);
-}
-
 void main() {
   float depth = texture2D(sceneDepth, vUv).x;
   float linearDepth = linearize_depth(depth, near, far);
 
   vec3 worldPos = WorldPosFromDepth(depth, vUv);
-  float inBoxDist = -10000.0;
+  vec3 direction = normalize(worldPos - cameraPos);
+  float distToTarget = distance(worldPos, cameraPos);
+
+  // Ray-convex intersection via slab method.
+  // For each frustum plane, classify the intersection as entry or exit based
+  // on whether the ray crosses from outside to inside or vice versa.
+  // The valid segment is [max of entries, min of exits].
+  float tEntry = 0.0;
+  float tExit = distToTarget;
+  bool missed = false;
   for (int i = 0; i < 6; i++) {
-    inBoxDist = max(inBoxDist, sdPlane(cameraPos, fNormals[i], fConstants[i]));
-  }
-  bool cameraIsInBox = inBoxDist < 0.0;
-  vec3 startPos = cameraPos;
-  if (cameraIsInBox) {
-    // If the ray target is outside the shadow box, move it to the nearest
-    // point on the box to avoid marching through unlit space
-    for (int i = 0; i < 6; i++) {
-      if (sdPlane(worldPos, fNormals[i], fConstants[i]) > 0.0) {
-        vec3 direction = normalize(worldPos - cameraPos);
-        float t = intersectRayPlane(cameraPos, direction, fNormals[i], fConstants[i]);
-        worldPos = cameraPos + t * direction;
-      }
-    }
-  } else {
-    // Find the first point where the ray intersects the shadow box (startPos)
-    vec3 direction = normalize(worldPos - cameraPos);
-    float minT = 10000.0;
-    for (int i = 0; i < 6; i++) {
-      float t = intersectRayPlane(cameraPos, direction, fNormals[i], fConstants[i]);
-      if (t < minT && t > 0.0) {
-        minT = t;
-      }
-    }
-    if (minT == 10000.0) {
-      gl_FragColor = vec4(0.0, 0.0, 0.0, linearDepth);
-      return;
-    }
-    startPos = cameraPos + (minT + 0.001) * direction;
+    float denom = dot(fNormals[i], direction);
+    float dist = sdPlane(cameraPos, fNormals[i], fConstants[i]);
 
-    // If the ray target is outside the shadow box, move it to the nearest
-    // point on the box to avoid marching through unlit space
-    float endInBoxDist = -10000.0;
-    for (int i = 0; i < 6; i++) {
-      endInBoxDist = max(endInBoxDist, sdPlane(worldPos, fNormals[i], fConstants[i]));
-    }
-    bool endInBox = false;
-    if (endInBoxDist < 0.0) {
-      endInBox = true;
-    }
-    if (!endInBox) {
-      float minT = 10000.0;
-      for (int i = 0; i < 6; i++) {
-        if (sdPlane(worldPos, fNormals[i], fConstants[i]) > 0.0) {
-          float t = intersectRayPlane(startPos, direction, fNormals[i], fConstants[i]);
-          if (t < minT && t > 0.0) {
-            minT = t;
-          }
-        }
+    if (abs(denom) < 1e-6) {
+      // Ray parallel to plane — miss if camera is outside this plane
+      if (dist > 0.0) {
+        missed = true;
+        break;
       }
-
-      if (minT < distance(worldPos, startPos)) {
-        worldPos = startPos + minT * direction;
+    } else {
+      float t = -dist / denom;
+      if (denom < 0.0) {
+        // Entry: ray crossing from outside to inside
+        tEntry = max(tEntry, t);
+      } else {
+        // Exit: ray crossing from inside to outside
+        tExit = min(tExit, t);
       }
     }
   }
+
+  if (missed || tEntry >= tExit) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, linearDepth);
+    return;
+  }
+
+  // Small offset to avoid self-intersection when camera is outside the volume
+  float startOffset = tEntry > 0.0 ? 0.001 : 0.0;
+  vec3 startPos = cameraPos + (tEntry + startOffset) * direction;
+  worldPos = cameraPos + tExit * direction;
   float illum = 0.0;
+  float rayLength = distance(startPos, worldPos);
+  float densityFactor = rayLength * density;
 
-  float densityFactor = distance(startPos, worldPos) * density;
+  float baseSteps;
+  if (raymarchStepSize > 0.0) {
+    float effectiveStepSize = max(raymarchStepSize, shadowTexelWorldSize * 0.5);
+    baseSteps = clamp(rayLength / effectiveStepSize, minSteps, maxSteps);
+  } else {
+    baseSteps = raymarchSteps;
+  }
+
   float noise = fract(52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y));
-  float samplesFloat = round(raymarchSteps + ((raymarchSteps / 8.) + 2.) * noise);
+  float samplesFloat = round(baseSteps + ((baseSteps / 8.0) + 2.0) * noise);
   int samples = int(samplesFloat);
   float earlyOutThreshold = -log(1.0 - maxDensity) * samplesFloat;
+  int stepsTaken = samples;
   for (int i = 0; i < samples; i++) {
     vec3 samplePos = mix(startPos, worldPos, float(i) / samplesFloat);
     vec2 shadowInfo = inShadow(samplePos);
     float shadowAmount = 1.0 - shadowInfo.x;
     illum += shadowAmount * densityFactor * pow(1.0 - shadowInfo.y / lightCameraFar, distanceAttenuation);
-    if (illum > earlyOutThreshold) break;
+    if (illum > earlyOutThreshold) {
+      stepsTaken = i + 1;
+      break;
+    }
   }
   illum /= samplesFloat;
+
+  #if defined(DEBUG_STEPS)
+  float t = clamp(float(stepsTaken) / 150.0, 0.0, 1.0);
+  gl_FragColor = vec4(0.0, t, 0.0, linearDepth);
+  #else
   gl_FragColor = vec4(vec3(clamp(1.0 - exp(-illum), 0.0, maxDensity)), linearDepth);
+  #endif
 }

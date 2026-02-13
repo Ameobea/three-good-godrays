@@ -39,6 +39,12 @@ export interface GodraysBlurParams {
   kernelSize: KernelSize;
 }
 
+export interface AdaptiveStepsParams {
+  stepSize: number;
+  minSteps?: number;
+  maxSteps?: number;
+}
+
 export interface GodraysPassParams {
   /**
    * The rate of accumulation for the godrays.  Higher values roughly equate to more humid air/denser fog.
@@ -103,6 +109,22 @@ export interface GodraysPassParams {
    * Default: `GodraysUpsampleQuality.HIGH`
    */
   upsampleQuality: GodraysUpsampleQuality;
+  /**
+   * Adaptive step count based on ray length / step size.  Uses per-pixel step count with shadow map texel size
+   * as an additional floor.
+   *
+   * Cannot be used together with an explicit `raymarchSteps` value.
+   */
+  adaptiveSteps?: AdaptiveStepsParams;
+  /**
+   * When enabled, renders a heatmap of raymarching step counts instead of godrays.
+   * Uses a fixed scale of 0–150 steps so that comparisons between configurations are absolute.
+   *
+   * Implemented via a shader define, so there is zero runtime cost when disabled.
+   *
+   * Default: false
+   */
+  debugSteps?: boolean;
 }
 
 const defaultParams: GodraysPassParams = {
@@ -118,6 +140,9 @@ const defaultParams: GodraysPassParams = {
 };
 
 const populateParams = (partialParams: Partial<GodraysPassParams>): GodraysPassParams => {
+  if ('raymarchSteps' in partialParams && 'adaptiveSteps' in partialParams) {
+    throw new Error('Cannot specify both raymarchSteps and adaptiveSteps');
+  }
   return {
     ...defaultParams,
     ...partialParams,
@@ -216,7 +241,7 @@ export class GodraysPass extends Pass implements Disposable {
     // Indicate to the composer that this pass needs depth information from the previous pass
     this.needsDepthTexture = true;
 
-    this.setParams(params);
+    this.setParams(partialParams);
   }
 
   /**
@@ -229,6 +254,7 @@ export class GodraysPass extends Pass implements Disposable {
     this.illumPass.updateUniforms(this.props, params);
     this.compositorPass.updateUniforms(params);
     this.compositorPass.updateUpsampleQuality(params.upsampleQuality);
+    this.compositorPass.updateDebugSteps(!!params.debugSteps);
 
     if (params.resolutionScale !== oldScale) {
       this.setSize(this.lastWidth, this.lastHeight);
@@ -246,6 +272,7 @@ export class GodraysPass extends Pass implements Disposable {
       }
 
       this.blurPass.updateUniforms(blurParams);
+      this.blurPass.updateDebugSteps(!!params.debugSteps);
     }
   }
 
@@ -254,6 +281,7 @@ export class GodraysPass extends Pass implements Disposable {
       this.blurPass = new BilateralFilterPass(input);
       const blurParams = populateGodraysBlurParams(this.lastParams.blur);
       this.blurPass.updateUniforms(blurParams);
+      this.blurPass.updateDebugSteps(!!this.lastParams.debugSteps);
       if (this.depthTexture) {
         this.blurPass.setDepthTexture(this.depthTexture, this.depthPacking ?? undefined);
       }

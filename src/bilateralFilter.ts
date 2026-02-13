@@ -62,6 +62,17 @@ export class BilateralFilterPass extends Pass implements Resizable, Disposable {
     this.material.defines.KSIZE_ENUM = params.kernelSize;
   }
 
+  public updateDebugSteps(enabled: boolean) {
+    const has = this.material.defines.DEBUG_STEPS !== undefined;
+    if (enabled && !has) {
+      this.material.defines.DEBUG_STEPS = '';
+      this.material.needsUpdate = true;
+    } else if (!enabled && has) {
+      delete this.material.defines.DEBUG_STEPS;
+      this.material.needsUpdate = true;
+    }
+  }
+
   public override dispose() {
     this.material.dispose();
     super.dispose();
