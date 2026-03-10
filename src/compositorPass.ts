@@ -113,14 +113,45 @@ export class GodraysCompositorPass extends Pass {
     const mat = this.fullscreenMaterial as GodraysCompositorMaterial;
     const jbuExtent = quality >= 1 ? 1 : 0;
     const jbuSpatialSigma = jbuExtent === 1 ? 1.0 : 0.5;
-    const needsUpdate =
-      mat.defines.JBU_EXTENT !== String(jbuExtent);
+    const needsUpdate = mat.defines.JBU_EXTENT !== String(jbuExtent);
 
     if (needsUpdate) {
       mat.defines.JBU_EXTENT = String(jbuExtent);
       mat.defines.JBU_SPATIAL_SIGMA = jbuSpatialSigma.toFixed(1);
       mat.needsUpdate = true;
     }
+  }
+
+  private maybeInitDepthCopyRenderTarget(width: number, height: number): void {
+    const needsRecreate =
+      !this.depthCopyRenderTexture ||
+      this.depthCopyRenderTexture.width !== width ||
+      this.depthCopyRenderTexture.height !== height;
+    if (!needsRecreate) {
+      return;
+    }
+
+    this.depthTextureCopyPass?.dispose();
+    this.depthTextureCopyPass = null;
+    this.depthCopyRenderTexture?.dispose();
+    this.depthCopyRenderTexture = new THREE.WebGLRenderTarget(width, height, {
+      minFilter: THREE.NearestFilter,
+      magFilter: THREE.NearestFilter,
+      format: THREE.RGBAFormat,
+      type: THREE.HalfFloatType,
+      depthBuffer: false,
+      stencilBuffer: false,
+      generateMipmaps: false,
+    });
+  }
+
+  private maybeInitDepthTextureCopyPass(): void {
+    if (this.depthTextureCopyPass || !this.depthCopyRenderTexture) {
+      return;
+    }
+
+    this.depthTextureCopyPass = new CopyPass(this.depthCopyRenderTexture, false);
+    (this.depthTextureCopyPass.fullscreenMaterial as any).colorSpaceConversion = false;
   }
 
   override render(
@@ -146,29 +177,21 @@ export class GodraysCompositorPass extends Pass {
       outputBuffer.depthTexture &&
       sceneDepth === outputBuffer.depthTexture
     ) {
-      if (!this.depthCopyRenderTexture) {
-        this.depthCopyRenderTexture = new THREE.WebGLRenderTarget(
-          outputBuffer.depthTexture.image.width,
-          outputBuffer.depthTexture.image.height,
-          {
-            minFilter: outputBuffer.depthTexture.minFilter,
-            magFilter: outputBuffer.depthTexture.magFilter,
-            format: outputBuffer.depthTexture.format,
-            generateMipmaps: outputBuffer.depthTexture.generateMipmaps,
-          }
-        );
-      }
-      if (!this.depthTextureCopyPass) {
-        this.depthTextureCopyPass = new CopyPass();
-      }
+      const depthWidth = outputBuffer.depthTexture.image.width;
+      const depthHeight = outputBuffer.depthTexture.image.height;
+      this.maybeInitDepthCopyRenderTarget(depthWidth, depthHeight);
+      this.maybeInitDepthTextureCopyPass();
 
-      this.depthTextureCopyPass.render(
+      const depthCopyRenderTexture = this.depthCopyRenderTexture!;
+      const copyPass = this.depthTextureCopyPass!;
+      copyPass.render(
         renderer,
-        (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth.value,
-        this.depthCopyRenderTexture
+        { texture: sceneDepth } as unknown as THREE.WebGLRenderTarget,
+        depthCopyRenderTexture
       );
+
       (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth.value =
-        this.depthCopyRenderTexture.texture;
+        depthCopyRenderTexture.texture;
     }
 
     renderer.setRenderTarget(outputBuffer);

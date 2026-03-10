@@ -1,6 +1,5 @@
 # `three-good-godrays`
 
-[![CI](https://github.com/ameobea/three-good-godrays/actions/workflows/cd.yml/badge.svg)](https://github.com/ameobea/three-good-godrays/actions/workflows/ci.yml)
 [![Version](https://badgen.net/npm/v/three-good-godrays?color=green)](https://www.npmjs.com/package/three-good-godrays)
 
 Good godrays effect for three.js using the [pmndrs `postprocessing` library](https://github.com/pmndrs/postprocessing)
@@ -20,7 +19,7 @@ Adapted from [original implementation](https://github.com/n8python/goodGodRays) 
 Or import from unpkg as a module:
 
 ```ts
-import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.11.0/build/three-good-godrays.esm.js';
+import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.11.1/build/three-good-godrays.esm.js';
 ```
 
 ## Supported Three.JS Version
