@@ -1,4 +1,4 @@
-import { CopyPass, Pass, type Resizable } from 'postprocessing';
+import { Pass, type Resizable } from 'postprocessing';
 import * as THREE from 'three';
 import type { PerspectiveCamera } from 'three';
 
@@ -77,8 +77,7 @@ export class GodraysCompositorMaterial extends THREE.ShaderMaterial implements R
 
 export class GodraysCompositorPass extends Pass {
   sceneCamera: PerspectiveCamera;
-  private depthCopyRenderTexture: THREE.WebGLRenderTarget | null = null;
-  private depthTextureCopyPass: CopyPass | null = null;
+  private depthCopyTarget: THREE.WebGLRenderTarget | null = null;
 
   constructor(props: GodraysCompositorMaterialProps) {
     // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
@@ -122,36 +121,62 @@ export class GodraysCompositorPass extends Pass {
     }
   }
 
-  private maybeInitDepthCopyRenderTarget(width: number, height: number): void {
+  private maybeInitDepthCopyTarget(width: number, height: number): void {
     const needsRecreate =
-      !this.depthCopyRenderTexture ||
-      this.depthCopyRenderTexture.width !== width ||
-      this.depthCopyRenderTexture.height !== height;
+      !this.depthCopyTarget ||
+      this.depthCopyTarget.width !== width ||
+      this.depthCopyTarget.height !== height;
     if (!needsRecreate) {
       return;
     }
 
-    this.depthTextureCopyPass?.dispose();
-    this.depthTextureCopyPass = null;
-    this.depthCopyRenderTexture?.dispose();
-    this.depthCopyRenderTexture = new THREE.WebGLRenderTarget(width, height, {
-      minFilter: THREE.NearestFilter,
-      magFilter: THREE.NearestFilter,
-      format: THREE.RGBAFormat,
-      type: THREE.HalfFloatType,
-      depthBuffer: false,
-      stencilBuffer: false,
-      generateMipmaps: false,
-    });
+    this.depthCopyTarget?.dispose();
+    this.depthCopyTarget = new THREE.WebGLRenderTarget(width, height);
+    this.depthCopyTarget.depthTexture = new THREE.DepthTexture(
+      width,
+      height,
+      THREE.UnsignedIntType
+    );
+    this.depthCopyTarget.depthTexture.format = THREE.DepthFormat;
+    this.depthCopyTarget.depthTexture.compareFunction = null as any;
+    this.depthCopyTarget.depthTexture.minFilter = THREE.NearestFilter;
+    this.depthCopyTarget.depthTexture.magFilter = THREE.NearestFilter;
   }
 
-  private maybeInitDepthTextureCopyPass(): void {
-    if (this.depthTextureCopyPass || !this.depthCopyRenderTexture) {
+  private blitDepthTexture(
+    renderer: THREE.WebGLRenderer,
+    sourceBuffer: THREE.WebGLRenderTarget
+  ): void {
+    const gl = renderer.getContext() as WebGL2RenderingContext;
+
+    const sourceProps = renderer.properties.get(sourceBuffer) as any;
+    const srcFramebuffer = sourceProps.__webglFramebuffer;
+
+    const copyTargetProps = renderer.properties.get(this.depthCopyTarget!) as any;
+    let dstFramebuffer = copyTargetProps?.__webglFramebuffer;
+
+    if (!dstFramebuffer) {
+      // Force Three.js to initialize the framebuffer by doing a dummy render
+      renderer.setRenderTarget(this.depthCopyTarget);
+      renderer.clear();
+      renderer.setRenderTarget(null);
+      const updatedProps = renderer.properties.get(this.depthCopyTarget!) as any;
+      dstFramebuffer = updatedProps.__webglFramebuffer;
+    }
+
+    if (!srcFramebuffer || !dstFramebuffer) {
       return;
     }
 
-    this.depthTextureCopyPass = new CopyPass(this.depthCopyRenderTexture, false);
-    (this.depthTextureCopyPass.fullscreenMaterial as any).colorSpaceConversion = false;
+    const width = sourceBuffer.width;
+    const height = sourceBuffer.height;
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFramebuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, dstFramebuffer);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
   }
 
   override render(
@@ -177,21 +202,11 @@ export class GodraysCompositorPass extends Pass {
       outputBuffer.depthTexture &&
       sceneDepth === outputBuffer.depthTexture
     ) {
-      const depthWidth = outputBuffer.depthTexture.image.width;
-      const depthHeight = outputBuffer.depthTexture.image.height;
-      this.maybeInitDepthCopyRenderTarget(depthWidth, depthHeight);
-      this.maybeInitDepthTextureCopyPass();
-
-      const depthCopyRenderTexture = this.depthCopyRenderTexture!;
-      const copyPass = this.depthTextureCopyPass!;
-      copyPass.render(
-        renderer,
-        { texture: sceneDepth } as unknown as THREE.WebGLRenderTarget,
-        depthCopyRenderTexture
-      );
+      this.maybeInitDepthCopyTarget(outputBuffer.width, outputBuffer.height);
+      this.blitDepthTexture(renderer, outputBuffer);
 
       (this.fullscreenMaterial as GodraysCompositorMaterial).uniforms.sceneDepth.value =
-        depthCopyRenderTexture.texture;
+        this.depthCopyTarget!.depthTexture;
     }
 
     renderer.setRenderTarget(outputBuffer);

@@ -1,6 +1,6 @@
 {
   "name": "three-good-godrays",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "description": "Screen-space raymarched godrays for three.js using the pmndrs postprocessing library",
   "type": "module",
   "main": "build/three-good-godrays.js",
@@ -55,8 +55,14 @@
     "prettier": "prettier --write \"src/**/*.{ts,js,tsx}\" && prettier --write \"demo/**/*.{ts,js,tsx}\""
   },
   "peerDependencies": {
+    "@types/three": ">= 0.125.0",
     "postprocessing": "^6.33.4",
     "three": ">= 0.125.0 <= 0.182.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/three": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.1.1",
