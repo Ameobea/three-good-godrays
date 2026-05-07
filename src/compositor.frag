@@ -83,7 +83,7 @@ void main() {
 
   float bestChoice = totalWeight > 0.0 ? totalIllum / totalWeight : 0.0;
 
-  vec3 diffuse = texture2D(sceneDiffuse, vUv).rgb;
+  vec4 diffuse = texture2D(sceneDiffuse, vUv);
 
   #if defined(DEBUG_STEPS)
   // In debug mode, the godrays texture contains heatmap RGB — pass through directly
@@ -103,9 +103,9 @@ void main() {
       totalColor += data.rgb * w;
     }
   }
-  gl_FragColor = vec4(totalColorWeight > 0.0 ? totalColor / totalColorWeight : vec3(0.0), 1.0);
+  gl_FragColor = vec4(totalColorWeight > 0.0 ? totalColor / totalColorWeight : vec3(0.0), diffuse.a);
   #else
-  gl_FragColor = vec4(mix(diffuse, color, bestChoice), 1.0);
+  gl_FragColor = vec4(mix(diffuse.rgb, color, bestChoice), diffuse.a);
   #endif
 
   #include <dithering_fragment>
