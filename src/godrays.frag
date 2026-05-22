@@ -6,6 +6,7 @@
  */
 
 varying vec2 vUv;
+varying vec3 vWorldRay;
 
 uniform sampler2D sceneDepth;
 uniform vec3 lightPos;
@@ -48,7 +49,7 @@ float linearize_depth(float depth, float zNear, float zFar) {
   return zNear * zFar / (zFar + depth * (zNear - zFar));
 }
 
-vec3 WorldPosFromDepth(float depth, vec2 coord) {
+vec3 WorldPosFromDepth(float depth) {
   #if defined( USE_LOGDEPTHBUF )
   float d = pow(2.0, depth * log2(far + 1.0)) - 1.0;
   float a = far / (far - near);
@@ -56,13 +57,9 @@ vec3 WorldPosFromDepth(float depth, vec2 coord) {
   depth = a + b / d;
   #endif
 
-  float z = depth * 2.0 - 1.0;
-  vec4 clipSpacePosition = vec4(coord * 2.0 - 1.0, z, 1.0);
-  vec4 viewSpacePosition = cameraProjectionMatrixInv * clipSpacePosition;
-  // Perspective division
-  viewSpacePosition /= viewSpacePosition.w;
-  vec4 worldSpacePosition = cameraMatrixWorld * viewSpacePosition;
-  return worldSpacePosition.xyz;
+  float ndcZ = depth * 2.0 - 1.0;
+  float invW = 1.0 / (cameraProjectionMatrixInv[2][3] * ndcZ + cameraProjectionMatrixInv[3][3]);
+  return vWorldRay * invW + cameraMatrixWorld[3].xyz;
 }
 
 /**
@@ -172,7 +169,7 @@ void main() {
   float depth = texture2D(sceneDepth, vUv).x;
   float linearDepth = linearize_depth(depth, near, far);
 
-  vec3 worldPos = WorldPosFromDepth(depth, vUv);
+  vec3 worldPos = WorldPosFromDepth(depth);
   vec3 direction = normalize(worldPos - cameraPos);
   float distToTarget = distance(worldPos, cameraPos);
 
