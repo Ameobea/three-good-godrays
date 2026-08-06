@@ -27,7 +27,8 @@ varying vec2 vUv;
 #include <dithering_pars_fragment>
 
 float linearize_depth(float depth, float zNear, float zFar) {
-  #if defined( USE_LOGDEPTHBUF )
+  // three.js renamed USE_LOGDEPTHBUF to USE_LOGARITHMIC_DEPTH_BUFFER in r180
+  #if defined( USE_LOGDEPTHBUF ) || defined( USE_LOGARITHMIC_DEPTH_BUFFER )
   float d = pow(2.0, depth * log2(far + 1.0)) - 1.0;
   float a = far / (far - near);
   float b = far * near / (near - far);
