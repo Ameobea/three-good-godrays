@@ -39,19 +39,19 @@ uniform mat4 premultipliedLightCameraMatrix;
 #include <packing>
 
 float linearize_depth(float depth, float zNear, float zFar) {
-  // three.js renamed USE_LOGDEPTHBUF to USE_LOGARITHMIC_DEPTH_BUFFER in r180
   #if defined( USE_LOGDEPTHBUF ) || defined( USE_LOGARITHMIC_DEPTH_BUFFER )
   float d = pow(2.0, depth * log2(zFar + 1.0)) - 1.0;
   float a = zFar / (zFar - zNear);
   float b = zFar * zNear / (zNear - zFar);
   depth = a + b / d;
+  #elif defined( USE_REVERSED_DEPTH_BUFFER )
+  depth = 1.0 - depth;
   #endif
 
   return zNear * zFar / (zFar + depth * (zNear - zFar));
 }
 
 vec3 WorldPosFromDepth(float depth) {
-  // three.js renamed USE_LOGDEPTHBUF to USE_LOGARITHMIC_DEPTH_BUFFER in r180
   #if defined( USE_LOGDEPTHBUF ) || defined( USE_LOGARITHMIC_DEPTH_BUFFER )
   float d = pow(2.0, depth * log2(far + 1.0)) - 1.0;
   float a = far / (far - near);
@@ -59,7 +59,11 @@ vec3 WorldPosFromDepth(float depth) {
   depth = a + b / d;
   #endif
 
+  #if defined( USE_REVERSED_DEPTH_BUFFER )
+  float ndcZ = depth;
+  #else
   float ndcZ = depth * 2.0 - 1.0;
+  #endif
   float invW = 1.0 / (cameraProjectionMatrixInv[2][3] * ndcZ + cameraProjectionMatrixInv[3][3]);
   return vWorldRay * invW + cameraMatrixWorld[3].xyz;
 }
@@ -111,8 +115,11 @@ vec3 projectToShadowMap(vec3 worldPos) {
   // use pre-multiplied matrix to transform to light space
   vec4 lightSpacePos = premultipliedLightCameraMatrix * vec4(worldPos, 1.0);
   lightSpacePos /= lightSpacePos.w;
-  lightSpacePos = lightSpacePos * 0.5 + 0.5;
-  return lightSpacePos.xyz;
+  #if defined( USE_REVERSED_DEPTH_BUFFER )
+  return vec3(lightSpacePos.xy * 0.5 + 0.5, 1.0 - lightSpacePos.z);
+  #else
+  return lightSpacePos.xyz * 0.5 + 0.5;
+  #endif
 }
 
 vec2 inShadow(vec3 worldPos) {
@@ -144,6 +151,10 @@ vec2 inShadow(vec3 worldPos) {
   #endif
   #else
   float depth = unpackRGBAToDepth(packedDepth);
+  #endif
+
+  #if defined( USE_REVERSED_DEPTH_BUFFER ) && defined( IS_DIRECTIONAL_LIGHT )
+  depth = 1.0 - depth;
   #endif
 
   depth = lightCameraNear + (lightCameraFar - lightCameraNear) * depth;

@@ -1,5 +1,7 @@
 import { Pass, type Resizable } from 'postprocessing';
 import * as THREE from 'three';
+
+import { FullscreenPassCamera } from './fullscreenPassCamera';
 import type { PerspectiveCamera } from 'three';
 
 import GodraysCompositorFragmentShader from './compositor.frag';
@@ -82,7 +84,7 @@ export class GodraysCompositorPass extends Pass {
   constructor(props: GodraysCompositorMaterialProps) {
     // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
     // our shaders were written expecting a base `THREE.Camera`.
-    super('GodraysCompositorPass', undefined, new THREE.Camera());
+    super('GodraysCompositorPass', undefined, new FullscreenPassCamera());
     this.fullscreenMaterial = new GodraysCompositorMaterial(props);
     this.sceneCamera = props.camera;
   }

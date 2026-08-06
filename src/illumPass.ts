@@ -1,6 +1,8 @@
 import { Pass, type Resizable } from 'postprocessing';
 import * as THREE from 'three';
 
+import { FullscreenPassCamera } from './fullscreenPassCamera';
+
 import GodraysFragmentShader from './godrays.frag';
 import GodraysVertexShader from './godrays.vert';
 import type { GodraysPassParams } from './index';
@@ -54,6 +56,8 @@ class GodraysMaterial extends THREE.ShaderMaterial {
     super({
       name: 'GodraysMaterial',
       uniforms,
+      depthWrite: false,
+      depthTest: false,
       fragmentShader: GodraysFragmentShader,
       vertexShader: GodraysVertexShader,
       defines: defines as any,
@@ -105,7 +109,7 @@ export class GodraysIllumPass extends Pass implements Resizable {
   constructor(props: GodraysIllumPassProps, params: GodraysPassParams) {
     // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
     // our shaders were written expecting a base `THREE.Camera`.
-    super('GodraysPass', undefined, new THREE.Camera());
+    super('GodraysPass', undefined, new FullscreenPassCamera());
 
     this.props = props;
     this.lastParams = params;
@@ -291,11 +295,13 @@ export class GodraysIllumPass extends Pass implements Resizable {
       uniforms.shadowTexelWorldSize.value =
         (2.0 * uniforms.lightCameraFar.value) / light.shadow.mapSize.x;
     } else if (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) {
-      SCRATCH_MAT4.multiplyMatrices(
-        light.shadow.camera.projectionMatrix,
-        light.shadow.camera.matrixWorldInverse
+      const shadowCam = light.shadow.camera as THREE.OrthographicCamera;
+      SCRATCH_MAT4.multiplyMatrices(shadowCam.projectionMatrix, shadowCam.matrixWorldInverse);
+      SCRATCH_FRUSTUM.setFromProjectionMatrix(
+        SCRATCH_MAT4,
+        shadowCam.coordinateSystem,
+        shadowCam.reversedDepth
       );
-      SCRATCH_FRUSTUM.setFromProjectionMatrix(SCRATCH_MAT4);
 
       const effectiveFar = this.computeEffectiveMaxDist(
         uniforms.lightCameraFar.value,
@@ -318,7 +324,6 @@ export class GodraysIllumPass extends Pass implements Resizable {
         uniforms.fConstants.value[planeIx] = plane.constant * -1;
       }
 
-      const shadowCam = light.shadow.camera as THREE.OrthographicCamera;
       uniforms.shadowTexelWorldSize.value =
         (shadowCam.right - shadowCam.left) / light.shadow.mapSize.x;
     }

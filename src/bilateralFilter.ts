@@ -1,6 +1,8 @@
 import { type Disposable, KernelSize, Pass, type Resizable } from 'postprocessing';
 import * as THREE from 'three';
 
+import { FullscreenPassCamera } from './fullscreenPassCamera';
+
 import BilateralFilterFragmentShader from './bilateralFilter.frag';
 import GodraysCompositorVertexShader from './compositor.vert';
 import type { GodraysBlurParams } from './index';
@@ -23,6 +25,8 @@ class BilateralFilterMaterial extends THREE.ShaderMaterial {
       defines: {
         KSIZE_ENUM: KernelSize.SMALL,
       },
+      depthWrite: false,
+      depthTest: false,
       vertexShader: GodraysCompositorVertexShader,
       fragmentShader: BilateralFilterFragmentShader,
     });
@@ -35,7 +39,7 @@ export class BilateralFilterPass extends Pass implements Resizable, Disposable {
   constructor(input: THREE.Texture<{ width: number; height: number }>) {
     // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
     // our shaders were written expecting a base `THREE.Camera`.
-    super('BilateralFilterPass', undefined, new THREE.Camera());
+    super('BilateralFilterPass', undefined, new FullscreenPassCamera());
     this.needsSwap = false;
     this.material = new BilateralFilterMaterial(input);
 

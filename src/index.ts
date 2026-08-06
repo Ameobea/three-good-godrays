@@ -7,6 +7,8 @@
 import { type Disposable, KernelSize, Pass } from 'postprocessing';
 import * as THREE from 'three';
 
+import { FullscreenPassCamera } from './fullscreenPassCamera';
+
 import { BilateralFilterPass, GODRAYS_BLUR_RESOLUTION_SCALE } from './bilateralFilter';
 import { GodraysCompositorMaterial, GodraysCompositorPass } from './compositorPass';
 import { GodraysIllumPass, type GodraysIllumPassProps } from './illumPass';
@@ -217,7 +219,7 @@ export class GodraysPass extends Pass implements Disposable {
   ) {
     // Newer versions of postprocessing provide an `OrthographicCamera` by default to `Pass`, but
     // our shaders were written expecting a base `THREE.Camera`.
-    super('GodraysPass', undefined, new THREE.Camera());
+    super('GodraysPass', undefined, new FullscreenPassCamera());
 
     this.props = {
       light: light,
