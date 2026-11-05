@@ -335,27 +335,25 @@ export class GodraysIllumPass extends Pass implements Resizable {
       throw new Error('Light used for godrays must have shadow');
     }
 
-    let shadowMap = shadow.map?.texture ?? null;
+    let shadowMap: THREE.Texture | null = shadow.map?.texture ?? null;
+    const depthTexture = shadow.map?.depthTexture;
     if (
-      (light instanceof THREE.DirectionalLight || (light as any).isDirectionalLight) &&
-      shadow.map?.depthTexture
+      depthTexture &&
+      (light instanceof THREE.DirectionalLight ||
+        (light as any).isDirectionalLight ||
+        (depthTexture as any).isCubeDepthTexture)
     ) {
-      shadowMap = shadow.map.depthTexture;
+      shadowMap = depthTexture;
     }
 
     const mapSize = shadow.map?.height ?? 1;
 
-    if (shadowMap && (shadowMap as any).isCubeTexture) {
-      if (this.material.defines.USE_CUBE_SHADOWMAP === undefined) {
-        this.material.defines.USE_CUBE_SHADOWMAP = '';
-        this.material.needsUpdate = true;
-      }
-    } else {
-      if (this.material.defines.USE_CUBE_SHADOWMAP !== undefined) {
-        delete this.material.defines.USE_CUBE_SHADOWMAP;
-        this.material.needsUpdate = true;
-      }
-    }
+    const isCube = !!(shadowMap as any)?.isCubeTexture;
+    this.toggleDefine('USE_CUBE_SHADOWMAP', isCube);
+    this.toggleDefine(
+      'USE_CUBE_SHADOW_SAMPLER',
+      isCube && (shadowMap as THREE.DepthTexture).compareFunction != null
+    );
 
     const uniforms = this.material.uniforms;
     uniforms.density.value = params.density;
@@ -381,14 +379,18 @@ export class GodraysIllumPass extends Pass implements Resizable {
       uniforms.raymarchStepSize.value = 0.0;
     }
 
-    const wantsDebug = !!params.debugSteps;
-    const hasDebug = this.material.defines.DEBUG_STEPS !== undefined;
-    if (wantsDebug && !hasDebug) {
-      this.material.defines.DEBUG_STEPS = '';
-      this.material.needsUpdate = true;
-    } else if (!wantsDebug && hasDebug) {
-      delete this.material.defines.DEBUG_STEPS;
-      this.material.needsUpdate = true;
+    this.toggleDefine('DEBUG_STEPS', !!params.debugSteps);
+  }
+
+  private toggleDefine(name: string, enabled: boolean): void {
+    if (enabled === (this.material.defines[name] !== undefined)) {
+      return;
     }
+    if (enabled) {
+      this.material.defines[name] = '';
+    } else {
+      delete this.material.defines[name];
+    }
+    this.material.needsUpdate = true;
   }
 }

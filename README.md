@@ -19,12 +19,12 @@ Adapted from [original implementation](https://github.com/n8python/goodGodRays) 
 Or import from unpkg as a module:
 
 ```ts
-import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.12.1/build/three-good-godrays.esm.js';
+import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.12.2/build/three-good-godrays.esm.js';
 ```
 
 ## Supported Three.JS Version
 
-This library was tested to work with Three.JS versions `>= 0.125.0 <= 0.182.0`.  Although it might work with versions outside that range, support is not guaranteed.
+This library was tested to work with Three.JS versions `>= 0.125.0 < 0.188.0`.  Although it might work with versions outside that range, support is not guaranteed.
 
 ## Shadow Map Types
 

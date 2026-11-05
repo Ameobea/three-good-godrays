@@ -14,7 +14,9 @@ uniform vec3 cameraPos;
 uniform vec2 resolution;
 uniform mat4 cameraProjectionMatrixInv;
 uniform mat4 cameraMatrixWorld;
-#if defined(USE_CUBE_SHADOWMAP)
+#if defined(USE_CUBE_SHADOW_SAMPLER)
+uniform samplerCubeShadow shadowMap;
+#elif defined(USE_CUBE_SHADOWMAP)
 uniform samplerCube shadowMap;
 #else
 uniform sampler2D shadowMap;
@@ -124,11 +126,24 @@ vec3 projectToShadowMap(vec3 worldPos) {
 
 vec2 inShadow(vec3 worldPos) {
   #if defined(USE_CUBE_SHADOWMAP)
+  // cube depth faces store perspective depth along the dominant axis, not radial distance
   vec3 lightToPos = worldPos - lightPos;
-  float lightDist = length(lightToPos);
-  float shadowMapDepth = textureCube(shadowMap, lightToPos).r;
-  float depth = lightCameraNear + (lightCameraFar - lightCameraNear) * shadowMapDepth;
-  return vec2(float(lightDist > depth + 0.005), lightDist);
+  vec3 absV = abs(lightToPos);
+  float viewZ = max(absV.x, max(absV.y, absV.z));
+  float dp = lightCameraFar * (viewZ - lightCameraNear) / (viewZ * (lightCameraFar - lightCameraNear));
+  #if defined(USE_CUBE_SHADOW_SAMPLER)
+  #if defined( USE_REVERSED_DEPTH_BUFFER )
+  dp = 1.0 - dp;
+  #endif
+  float lit = texture(shadowMap, vec4(lightToPos, dp));
+  #else
+  float depth = textureCube(shadowMap, lightToPos).r;
+  #if defined( USE_REVERSED_DEPTH_BUFFER )
+  depth = 1.0 - depth;
+  #endif
+  float lit = step(dp, depth);
+  #endif
+  return vec2(1.0 - lit, length(lightToPos));
   #else
 
   #if defined(IS_POINT_LIGHT)
